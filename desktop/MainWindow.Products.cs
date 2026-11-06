@@ -15,16 +15,24 @@ sealed partial class MainWindow
     string currentGroup = "";
     string? shownProduct, variantsFor;
     bool syncingProducts;
+    const int MaxSearchResults = 300;
+    readonly System.Windows.Threading.DispatcherTimer searchTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
 
     void InitializeProducts()
     {
         productArea = new ScrollViewer { Content = productRows, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-        productSearch.TextChanged += (_, _) => RenderProductGrid();
+        searchTimer.Tick += (_, _) => { searchTimer.Stop(); RenderProductGrid(); };
+        Closing += (_, _) => searchTimer.Stop();
+        productSearch.TextChanged += (_, _) =>
+        {
+            searchTimer.Stop();
+            if (productSearch.Text.Trim() == "") RenderProductGrid(); else searchTimer.Start();
+        };
         groupTabs.SelectionChanged += (_, e) =>
         {
             if (e.OriginalSource != groupTabs || syncingProducts) return;
             currentGroup = (groupTabs.SelectedItem as TabItem)?.Tag?.ToString() ?? "";
-            AttachProductArea(); RenderProductGrid();
+            searchTimer.Stop(); AttachProductArea(); RenderProductGrid();
         };
         variantSlots.Selected += async name => await SelectVariant(name);
         variantScroll.PreviewMouseWheel += (_, e) => { variantScroll.ScrollToHorizontalOffset(variantScroll.HorizontalOffset - e.Delta / 3.0); e.Handled = true; };
@@ -88,12 +96,21 @@ sealed partial class MainWindow
 
     void RenderProductGrid()
     {
+        searchTimer.Stop();
         productRows.Children.Clear(); productGrids.Clear();
         var term = productSearch.Text.Trim();
         // Com termo, a busca ignora o grupo selecionado e mostra os resultados de todos os grupos.
         var matches = productData.Where(p => term == "" ? J.S(p, "group") == currentGroup : ProductMatches(p, term)).ToList();
+        var total = matches.Count;
         if (term != "")
-            productRows.Children.Add(GameUI.Text(matches.Count == 0 ? "Nenhum resultado para \"" + term + "\"" : "Resultados em todos os grupos", 11, GameUI.Muted));
+        {
+            productRows.Children.Add(GameUI.Text(total == 0 ? "Nenhum resultado para \"" + term + "\"" : "Resultados em todos os grupos", 11, GameUI.Muted));
+            if (total > MaxSearchResults)
+            {
+                matches = matches.Take(MaxSearchResults).ToList();
+                productRows.Children.Add(GameUI.Text("Mostrando " + MaxSearchResults + " de " + total + " resultados — refine a busca", 11, GameUI.Muted));
+            }
+        }
         foreach (var subgroup in matches.GroupBy(p => (J.S(p, "group"), J.S(p, "subgroup"))))
         {
             var grid = new SlotGrid { Margin = new Thickness(0, 0, 0, 3) };
@@ -103,7 +120,7 @@ sealed partial class MainWindow
             grid.Selected += name => OnProductSelected(name, grid);
             productGrids.Add(grid); productRows.Children.Add(grid);
         }
-        productCount.Text = productData.Count == 0 ? "" : matches.Count + " produto(s)";
+        productCount.Text = productData.Count == 0 ? "" : total + " produto(s)";
     }
 
     /// <summary>Nome/rótulo do produto, grupo/subgrupo, nome/rótulo das receitas e nomes de ingredientes e saídas das variantes.</summary>

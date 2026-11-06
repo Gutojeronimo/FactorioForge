@@ -83,6 +83,7 @@ sealed partial class MainWindow
             var name = J.S(entry, "product_name"); var target = J.N(entry, "target_per_min");
             var open = GameUI.Button(J.Label(name) + " · " + target.ToString("0.#") + "/min · ver prévia", (_, _) =>
             {
+                if (busy) return;
                 selectedRecipe = recipeData.FirstOrDefault(r => J.S(r, "name") == J.S(entry, "recipe_name"))?.DeepClone();
                 result = factory is JsonNode selectedFactory ? BatchPreview(selectedFactory) : null; selectedProduct = J.S(result?["plan"], "product_name"); selectedMachine = J.S(result?["plan"], "machine_name");
                 SyncProductSelection();
