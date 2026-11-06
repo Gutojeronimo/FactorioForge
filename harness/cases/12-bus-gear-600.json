@@ -1,0 +1,188 @@
+{
+ "id": "12-bus-gear-600",
+ "blueprint_string": "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",
+ "ticks_warmup": 900,
+ "ticks_measure": 3600,
+ "seed": 1,
+ "feed": [
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -1.5,
+    "y": 0.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -1.5,
+    "y": 2.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -1.5,
+    "y": 4.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -1.5,
+    "y": 6.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 2.5,
+    "y": 1.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 2.5,
+    "y": 3.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 2.5,
+    "y": 5.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 1.5,
+    "y": 0.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 1.5,
+    "y": 2.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 1.5,
+    "y": 4.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 1.5,
+    "y": 6.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 5.5,
+    "y": 1.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 5.5,
+    "y": 3.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 5.5,
+    "y": 5.5
+   }
+  }
+ ],
+ "sinks": [
+  {
+   "position": {
+    "x": 28.5,
+    "y": 13.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 28.5,
+    "y": 17.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 29.5,
+    "y": 13.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 29.5,
+    "y": 17.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 23.5,
+    "y": 29.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 23.5,
+    "y": 33.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 24.5,
+    "y": 29.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 24.5,
+    "y": 33.5
+   },
+   "count": true
+  }
+ ],
+ "machine_modules": [],
+ "beacon_modules": [],
+ "expected": {
+  "iron-gear-wheel": 10.5
+ },
+ "tolerance": {
+  "abs": 0.0,
+  "rel": 0.1
+ }
+}

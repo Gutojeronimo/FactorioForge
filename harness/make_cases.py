@@ -14,9 +14,13 @@ VERSION = (2 << 48) | (1 << 32) | (24 << 16)  # 2.1.24
 WEST = 12
 
 
-def blueprint_string(entities) -> str:
-    numbered = [dict(e, entity_number=i + 1) for i, e in enumerate(entities)]
-    data = {"blueprint": {"item": "blueprint", "version": VERSION, "entities": numbered}}
+def blueprint_string(entities, wires=None) -> str:
+    """Entities keep their entity_number when present (needed to keep `wires` valid); otherwise numbered 1..n."""
+    numbered = [e if "entity_number" in e else dict(e, entity_number=i + 1) for i, e in enumerate(entities)]
+    body = {"item": "blueprint", "version": VERSION, "entities": numbered}
+    if wires:
+        body["wires"] = wires
+    data = {"blueprint": body}
     return "0" + base64.b64encode(zlib.compress(json.dumps(data).encode(), 9)).decode()
 
 

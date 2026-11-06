@@ -57,6 +57,16 @@ class DemandTests(unittest.TestCase):
         self.assertEqual(d.cells[0].product, "iron-gear-wheel")
         self.assertAlmostEqual(d.cells[0].output_per_min, 60)
 
+    def test_recipe_named_like_its_product_is_preferred_over_alphabetical_first(self):
+        recipes = RECIPES + [{"name": "a-recycling-gear", "ingredients": [item("copper-plate", 1)], "products": [item("iron-gear-wheel", 1)]}]
+        d = plan_demand(targets("iron-gear-wheel", 60), default_bus(), recipes)
+        self.assertEqual([c.recipe for c in d.cells], ["iron-gear-wheel"])
+
+    def test_explicit_preferred_recipe_overrides(self):
+        recipes = RECIPES + [{"name": "a-recycling-gear", "ingredients": [item("copper-plate", 1)], "products": [item("iron-gear-wheel", 1)]}]
+        d = plan_demand(targets("iron-gear-wheel", 60), default_bus(), recipes, preferred={"iron-gear-wheel": "a-recycling-gear"})
+        self.assertEqual([c.recipe for c in d.cells], ["a-recycling-gear"])
+
     def test_totals_match_sum_of_cells(self):
         d = plan_demand(targets("electronic-circuit", 60), default_bus(), RECIPES)
         for name, total in d.totals.items():

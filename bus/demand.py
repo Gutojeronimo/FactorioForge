@@ -22,12 +22,17 @@ class BusDemand:
     warnings: list = field(default_factory=list)
 
 
-def plan_demand(targets: list, bus, recipes: list) -> BusDemand:
+def plan_demand(targets: list, bus, recipes: list, preferred: dict = None) -> BusDemand:
     names = bus.names()
     for target in targets:
         if target.get("name") in names:
             raise ValueError("%s já está no barramento; não há o que produzir." % target["name"])
-    plan = plan_targets(targets, recipes, raw_items=names)
+    # Modded catalogs list many producers per item; plan_targets would take the alphabetical first
+    # (often a recycling recipe). Prefer the recipe named like its product, unless the caller overrides.
+    chosen = {r["name"]: r["name"] for r in recipes if isinstance(r, dict) and any(
+        p.get("name") == r.get("name") for p in r.get("products", []))}
+    chosen.update(preferred or {})
+    plan = plan_targets(targets, recipes, chosen, raw_items=names)
     by_name = {r["name"]: r for r in recipes if isinstance(r, dict) and r.get("name")}
     crafts, outputs = defaultdict(float), {}
     for step in plan["steps"]:

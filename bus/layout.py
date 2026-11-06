@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 
 from blueprint_quality import _bounds, require_input_signals
 from bus.demand import plan_demand
-from bus.lanes import LanePlan, allocate_lanes
+from bus.lanes import LanePlan, allocate_groups
 from bus.signals import signal_combinator
 from bus.tap import SOUTH, LANE_SPACING, build_tap
 
@@ -98,21 +98,18 @@ def _ordered(plan, cells):
     return plan
 
 
-def _shareable_pairs(cells, names):
-    pairs, bad = set(), set()
+def _bus_groups(cells, names):
+    """The bus mirrors each cell's real input belts: one group per belt, with only the bus items on it."""
+    groups = []
     for _, cell in cells:
         for group in _group_ports(cell["ports"]).values():
-            on_bus = sorted({p["name"] for p in group if p["name"] in names})
-            for i, a in enumerate(on_bus):
-                for b in on_bus[i + 1:]:
-                    pairs.add(frozenset((a, b)))
-    for demand_cell, cell in cells:
-        groups = [{p["name"] for p in g} for g in _group_ports(cell["ports"]).values()]
-        for pair in pairs:
-            a, b = tuple(pair)
-            if (a in demand_cell.consumes or b in demand_cell.consumes) and not any(pair <= g for g in groups):
-                bad.add(pair)
-    return pairs - bad
+            items = {}
+            for p in group:
+                if p["name"] in names:
+                    items[p["name"]] = items.get(p["name"], 0) + p.get("per_min", 0)
+            if items:
+                groups.append({"items": items})
+    return groups
 
 
 def build_factory(raw, targets, bus, cfg, cell_factory=None, recipes=None) -> Factory:
@@ -125,7 +122,7 @@ def build_factory(raw, targets, bus, cfg, cell_factory=None, recipes=None) -> Fa
     warnings = list(demand.warnings)
     cells = [(d, cell_factory(d, cfg)) for d in demand.cells]
     names = bus.names()
-    plan = _ordered(allocate_lanes(demand, bus, {"belts": belts}, share_pairs=_shareable_pairs(cells, names)), cells)
+    plan = _ordered(allocate_groups(_bus_groups(cells, names), bus, {"belts": belts}), cells)
 
     index = _bounds_index(raw)
     tier = TIERS.get(bus.belt)

@@ -69,3 +69,50 @@ def allocate_lanes(demand, bus, catalog: dict, safety_margin: float = 0.08, shar
             plan.belts.append(Belt(name, None, usable, share))
         plan.free_per_min[name] = needed[name] * usable - demand.totals[name]
     return plan
+
+
+def allocate_groups(groups: list, bus, catalog: dict, safety_margin: float = 0.08) -> LanePlan:
+    """Belts for the cells' real input belts: each group is {"items": {name: per_min}} (1 or 2 items).
+
+    Groups with the same item set share belts; a 2-item group puts one item on each lane. An item used by
+    several groups can therefore appear on several belts (alone and paired)."""
+    speed = catalog["belts"][bus.belt]["speed"]
+    usable = belt_capacity(speed, safety_margin)[1]
+    lane = usable / 2
+    on_bus = bus.names()
+    totals = {}
+    for group in groups:
+        items = {n: v for n, v in group["items"].items() if n in on_bus and v > 0}
+        if len(items) > 2:
+            raise ValueError("Uma esteira de entrada recebe %d itens do barramento (%s); no máximo 2 (um por lane)."
+                             % (len(items), ", ".join(sorted(items))))
+        if items:
+            key = tuple(sorted(items))
+            bucket = totals.setdefault(key, {})
+            for name, value in items.items():
+                bucket[name] = bucket.get(name, 0) + value
+    plan = LanePlan()
+    belts_per_item = {}
+    for key in sorted(totals):
+        load = totals[key]
+        if len(key) == 1:
+            count = max(1, math.ceil(load[key[0]] / usable - EPS))
+            share = {key[0]: load[key[0]] / count}
+            for _ in range(count):
+                plan.belts.append(Belt(key[0], None, usable, share[key[0]]))
+            plan.free_per_min[key[0]] = plan.free_per_min.get(key[0], 0) + count * usable - load[key[0]]
+        else:
+            a, b = key
+            count = max(1, math.ceil(max(load[a], load[b]) / lane - EPS))
+            for _ in range(count):
+                plan.belts.append(Belt(a, b, usable, load[a] / count, load[b] / count))
+            for name in key:
+                plan.free_per_min[name] = plan.free_per_min.get(name, 0) + count * lane - load[name]
+        for name in key:
+            belts_per_item[name] = belts_per_item.get(name, 0) + count
+    maxima = {item.name: item.max_belts for item in bus.items}
+    for name, count in sorted(belts_per_item.items()):
+        if count > maxima[name]:
+            raise ValueError("Faltam %d faixa(s) de %s: a demanda exige %d esteiras e o máximo configurado é %d."
+                             % (count - maxima[name], name, count, maxima[name]))
+    return plan

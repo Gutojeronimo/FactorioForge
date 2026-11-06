@@ -1,0 +1,267 @@
+{
+ "id": "13-bus-three-products",
+ "blueprint_string": "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",
+ "ticks_warmup": 900,
+ "ticks_measure": 3600,
+ "seed": 1,
+ "feed": [
+  {
+   "item": "coal",
+   "infinite": true,
+   "position": {
+    "x": -1.5,
+    "y": 0.5
+   }
+  },
+  {
+   "item": "coal",
+   "infinite": true,
+   "position": {
+    "x": -1.5,
+    "y": 2.5
+   }
+  },
+  {
+   "item": "coal",
+   "infinite": true,
+   "position": {
+    "x": -1.5,
+    "y": 4.5
+   }
+  },
+  {
+   "item": "coal",
+   "infinite": true,
+   "position": {
+    "x": -1.5,
+    "y": 6.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 2.5,
+    "y": 1.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 2.5,
+    "y": 3.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 2.5,
+    "y": 5.5
+   }
+  },
+  {
+   "item": "copper-plate",
+   "infinite": true,
+   "position": {
+    "x": 1.5,
+    "y": 0.5
+   }
+  },
+  {
+   "item": "copper-plate",
+   "infinite": true,
+   "position": {
+    "x": 1.5,
+    "y": 2.5
+   }
+  },
+  {
+   "item": "copper-plate",
+   "infinite": true,
+   "position": {
+    "x": 1.5,
+    "y": 4.5
+   }
+  },
+  {
+   "item": "copper-plate",
+   "infinite": true,
+   "position": {
+    "x": 1.5,
+    "y": 6.5
+   }
+  },
+  {
+   "item": "copper-plate",
+   "infinite": true,
+   "position": {
+    "x": 5.5,
+    "y": 1.5
+   }
+  },
+  {
+   "item": "copper-plate",
+   "infinite": true,
+   "position": {
+    "x": 5.5,
+    "y": 3.5
+   }
+  },
+  {
+   "item": "copper-plate",
+   "infinite": true,
+   "position": {
+    "x": 5.5,
+    "y": 5.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 4.5,
+    "y": 0.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 4.5,
+    "y": 2.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 4.5,
+    "y": 4.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 4.5,
+    "y": 6.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 8.5,
+    "y": 1.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 8.5,
+    "y": 3.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 8.5,
+    "y": 5.5
+   }
+  }
+ ],
+ "sinks": [
+  {
+   "position": {
+    "x": 21.5,
+    "y": 13.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 21.5,
+    "y": 17.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 22.5,
+    "y": 13.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 22.5,
+    "y": 17.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 26.5,
+    "y": 24.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 26.5,
+    "y": 28.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 26.5,
+    "y": 40.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 26.5,
+    "y": 44.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 21.5,
+    "y": 51.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 21.5,
+    "y": 55.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 22.5,
+    "y": 51.5
+   },
+   "count": true
+  }
+ ],
+ "machine_modules": [],
+ "beacon_modules": [],
+ "expected": {
+  "copper-cable": 6.0,
+  "grenade": 0.5625,
+  "iron-gear-wheel": 3.0
+ },
+ "tolerance": {
+  "abs": 0.0,
+  "rel": 0.1
+ }
+}
