@@ -16,6 +16,7 @@ def raw_fixture():
             "transport-belt": {"place_result": "transport-belt"},
             "inserter": {"place_result": "inserter"},
             "assembling-machine-1": {"place_result": "assembling-machine-1"},
+            "chemical-plant": {"place_result": "chemical-plant"},
         },
         "transport-belt": {
             "transport-belt": {"name": "transport-belt", "speed": 0.03125},
@@ -25,6 +26,7 @@ def raw_fixture():
         "inserter": {
             "inserter": {"name": "inserter", "rotation_speed": 0.014, "extension_speed": 0.035, "stack_size_bonus": 1, "junk": 1},
         },
+        "chemical-plant": {"chemical-plant": {"name": "chemical-plant", "crafting_speed": 1}},
         "assembling-machine": {
             "assembling-machine-1": {
                 "name": "assembling-machine-1", "crafting_speed": 0.5, "module_slots": 0,
@@ -35,6 +37,9 @@ def raw_fixture():
 
 
 class CatalogCacheTests(unittest.TestCase):
+    def test_chemical_plant_is_a_machine(self):
+        self.assertEqual(build_catalog(raw_fixture())["machines"]["chemical-plant"]["crafting_speed"], 1)
+
     def test_hidden_recipes_excluded(self):
         cat = build_catalog(raw_fixture())
         self.assertIn("gear", cat["recipes"])

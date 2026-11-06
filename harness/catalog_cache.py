@@ -6,7 +6,7 @@ from pathlib import Path
 _FP = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
 _SECTIONS = {
-    "machines": (("assembling-machine", "furnace"),
+    "machines": (("assembling-machine", "furnace", "chemical-plant"),
                  ("crafting_speed", "module_slots", "allowed_effects", "crafting_categories", "energy_usage")),
     "modules": (("module",), ("category", "effect", "tier")),
     "beacons": (("beacon",), ("module_slots", "supply_area_distance", "distribution_effectivity", "allowed_effects")),

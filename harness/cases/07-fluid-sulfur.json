@@ -1,0 +1,42 @@
+{
+ "id": "07-fluid-sulfur",
+ "blueprint_string": "0eNptjVEKwjAQRK8i+bZiQ1upVxGRtG5xIUnDJhFLyN1dW0WR/izDzOy8JDodwRHaII6bJDCAYfHjbjfiDuRxtOzXjWzrSlZt25TVQXIGNmBA8ByekrDKwOu9v4HBXunCabVsuNFzbx5J4sF3v6vZnhaVWRL06OZvH/UQSXzWp4uNpgPiqOTilzIoHwq0HigArULkP+SKjHlXSrlCkPmc8xOWolVr",
+ "ticks_warmup": 300,
+ "ticks_measure": 1800,
+ "seed": 1,
+ "feed": [
+  {
+   "fluid": "water",
+   "infinite": true,
+   "position": {
+    "x": -0.5,
+    "y": -1.5
+   }
+  },
+  {
+   "fluid": "petroleum-gas",
+   "infinite": true,
+   "position": {
+    "x": 1.5,
+    "y": -1.5
+   }
+  }
+ ],
+ "sinks": [
+  {
+   "position": {
+    "x": 3.5,
+    "y": 0.5
+   }
+  }
+ ],
+ "machine_modules": [],
+ "beacon_modules": [],
+ "expected": {
+  "sulfur": 2.0
+ },
+ "tolerance": {
+  "abs": 0.0,
+  "rel": 0.05
+ }
+}

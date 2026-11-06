@@ -20,6 +20,7 @@ Janela de medição: 300 ticks de aquecimento + 1200 ticks medidos. Produção l
 - **Beacon:** um beacon com 2 módulos de velocidade (efeito × `distribution_effectivity` 1,5) bate exatamente: 0,75·(1+0,6)/0,5 = 2,4/s. A primeira tentativa mediu 1,25 porque o blueprint foi deslocado pelo jogo e a alimentação caiu fora das máquinas; o mod agora corrige o deslocamento.
 - **Direção do inserter** no blueprint: aponta para o lado de coleta (ver `harness/LAUNCH.md`). Conferir o exportador do ForgePlan.
 | 06 montadora 2 + 1 beacon com 2 módulos de velocidade, 3 fileiras | 2,400 | 2,400 | passa |
+| 07 fábrica química: sulfur de água + gás de petróleo (infinity-pipe) | 2,000 | 2,000 | passa |
 
 ## Inserter: causa provável e correção proposta
 
@@ -36,7 +37,7 @@ A janela curta do caso 04 (1200 ticks) deu 0,450; com 7200 ticks o valor estabil
 
 ## Não coberto ainda
 
-Fluidos (`infinity-pipe`), mais de um beacon (o perfil de múltiplos beacons não está modelado e `predict_rate` recusa), esteiras com saturação por lane, splitters, e a modlist de 226 mods do usuário. O código do mod já aceita `feed.fluid`, mas não foi exercitado em jogo.
+Taxa/capacidade de tubulação (o caso 07 usa `infinity-pipe` ligado direto à máquina), mais de um beacon (o perfil de múltiplos beacons não está modelado e `predict_rate` recusa), esteiras com saturação por lane, splitters, e a modlist de 226 mods do usuário. O código do mod já aceita `feed.fluid`, mas não foi exercitado em jogo.
 
 ## Tolerância proposta
 

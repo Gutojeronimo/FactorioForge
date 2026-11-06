@@ -164,6 +164,7 @@ local function finish(surface)
 end
 
 local function init()
+  for _, recipe in pairs(game.forces.player.recipes) do recipe.enabled = true end
   storage.errors, storage.machines, storage.rejected, storage.built = {}, {}, {}, {}
   storage.t0 = game.tick
   local surface = game.surfaces[1]

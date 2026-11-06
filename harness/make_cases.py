@@ -41,6 +41,19 @@ def case(case_id, entities, expected, modules=(), lanes=1, warmup=300, measure=1
             "expected": expected, "tolerance": {"abs": 0.0, "rel": 0.05}}
 
 
+def fluid_case(catalog):
+    entities = [
+        {"name": "chemical-plant", "position": {"x": 0.5, "y": 0.5}, "recipe": "sulfur"},
+        {"name": "fast-inserter", "position": {"x": 2.5, "y": 0.5}, "direction": WEST},
+    ]
+    out = case("07-fluid-sulfur", entities,
+               {"sulfur": predict_rate(catalog, "chemical-plant", "sulfur", "sulfur")}, warmup=300, measure=1800)
+    out["feed"] = [{"fluid": "water", "infinite": True, "position": {"x": -0.5, "y": -1.5}},
+                   {"fluid": "petroleum-gas", "infinite": True, "position": {"x": 1.5, "y": -1.5}}]
+    out["sinks"] = [{"position": {"x": 3.5, "y": 0.5}}]
+    return out
+
+
 def build(catalog: dict) -> list:
     gear = lambda m, **kw: predict_rate(catalog, m, "iron-gear-wheel", "iron-gear-wheel", **kw)
     speed2 = [{"name": "speed-module", "count": 2}]
@@ -59,6 +72,8 @@ def build(catalog: dict) -> list:
              {"iron-gear-wheel": min(gear("assembling-machine-1"), basic / 2)}, warmup=600, measure=7200),
         case("05-long-handed-limited", line("assembling-machine-1", "long-handed-inserter", "iron-gear-wheel", reach=2),
              {"iron-gear-wheel": min(gear("assembling-machine-1"), long_hand / 2)}, warmup=600, measure=7200, reach=2),
+        # Fluid: chemical plant (fluid inputs on its north side) makes sulfur from water + petroleum gas.
+        fluid_case(catalog),
         # One beacon north of the machine (3x3, supply area 3 reaches the machine); AM2 accepts speed from beacons.
         case("06-beacon", line("assembling-machine-2", "fast-inserter", "iron-gear-wheel", 3)
              + [{"name": "beacon", "position": {"x": 0.5, "y": -3.5}}],
