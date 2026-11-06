@@ -324,7 +324,7 @@ sealed partial class MainWindow
     {
         var factory = FactoryOptions();
         foreach (var key in equipmentSelection.Keys) factory.Remove(key);
-        return new() { ["version"] = 1, ["recipe_name"] = J.S(selectedRecipe, "name"), ["product_name"] = selectedProduct, ["machine_name"] = selectedMachine, ["target_per_min"] = rate.Text, ["factory"] = factory, ["ai_instructions"] = aiInstructions.Text, ["ai_timeout"] = timeoutBox.Text, ["ai_fallback"] = allowFallback.IsChecked == true, ["model"] = (models.SelectedItem as ListBoxItem)?.Tag?.ToString() ?? "" };
+        return new() { ["version"] = 1, ["recipe_name"] = J.S(selectedRecipe, "name"), ["product_name"] = selectedProduct, ["machine_name"] = selectedMachine, ["target_per_min"] = TryTargetPerMinute(out var perMinute) ? perMinute.ToString(CultureInfo.InvariantCulture) : rate.Text, ["factory"] = factory, ["ai_instructions"] = aiInstructions.Text, ["ai_timeout"] = timeoutBox.Text, ["ai_fallback"] = allowFallback.IsChecked == true, ["model"] = (models.SelectedItem as ListBoxItem)?.Tag?.ToString() ?? "" };
     }
 
     void SaveEquipmentProfile()
@@ -403,15 +403,14 @@ sealed partial class MainWindow
         beltStrategyChoice.SelectedItem = beltStrategyChoice.Items.Cast<ListBoxItem>().FirstOrDefault(i => i.Tag.ToString() == J.S(cfg, "belt_strategy", "auto")) ?? beltStrategyChoice.Items[0];
         if (restoreEquipment)
             foreach (var key in equipmentSelection.Keys.ToArray()) equipmentSelection[key] = J.S(cfg, key, equipmentSelection[key]);
-        rate.Text = J.S(saved, "target_per_min", "60"); aiInstructions.Text = J.S(saved, "ai_instructions"); timeoutBox.Text = J.S(saved, "ai_timeout", "120"); allowFallback.IsChecked = saved["ai_fallback"]?.GetValue<bool>() ?? true;
+        rate.Text = J.S(saved, "target_per_min", "60"); rateUnit.SelectedIndex = 0; aiInstructions.Text = J.S(saved, "ai_instructions"); timeoutBox.Text = J.S(saved, "ai_timeout", "120"); allowFallback.IsChecked = saved["ai_fallback"]?.GetValue<bool>() ?? true;
         models.SelectedItem = models.Items.Cast<ListBoxItem>().FirstOrDefault(i => i.Tag.ToString() == J.S(saved, "model")) ?? models.Items[0];
         if (restoreEquipment) preferredMachine = J.S(saved, "machine_name");
         var recipe = recipeData.FirstOrDefault(r => J.S(r, "name") == J.S(saved, "recipe_name"));
         if (recipe != null)
         {
-            search.Text = J.S(recipe, "name"); await SelectRecipe(recipe);
-            if (J.A(recipe, "products").Any(p => J.S(p, "name") == J.S(saved, "product_name"))) selectedProduct = J.S(saved, "product_name");
-            RenderMachines(); RenderProducts(); RenderMachineBadge();
+            await SelectRecipe(recipe, J.S(saved, "product_name"));
+            RenderMachines(); SyncProductSelection(); RenderMachineBadge();
         }
         RenderEquipment();
     }

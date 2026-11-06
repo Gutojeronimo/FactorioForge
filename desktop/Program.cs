@@ -149,13 +149,11 @@ sealed partial class MainWindow : Window
 {
     sealed record QueuedObjective(string Recipe, string Product, string Machine, double Rate, JsonObject Factory);
     readonly Backend backend;
-    readonly TextBox exe = UI.Input(), mods = UI.Input(), search = UI.Input(), rate = UI.Input("60"), ollamaUrl = UI.Input("http://127.0.0.1:11434");
+    readonly TextBox exe = UI.Input(), mods = UI.Input(), ollamaUrl = UI.Input("http://127.0.0.1:11434");
     readonly ComboBox saveChoices = new() { Background = UI.Brush("#101813"), Foreground = Brushes.WhiteSmoke, BorderBrush = UI.Line, Margin = new Thickness(0, 4, 0, 5), MaxDropDownHeight = 260 };
-    readonly ComboBox itemGroupFilter = new() { Background = UI.Brush("#101813"), Foreground = Brushes.WhiteSmoke, BorderBrush = UI.Line, Margin = new Thickness(0, 4, 0, 5), MaxDropDownHeight = 260 };
-    readonly ComboBox itemSubgroupFilter = new() { Background = UI.Brush("#101813"), Foreground = Brushes.WhiteSmoke, BorderBrush = UI.Line, Margin = new Thickness(0, 4, 0, 5), MaxDropDownHeight = 260 };
     readonly CheckBox allowSaveVersions = new() { Content = "Aceitar versão instalada compatível (mesma versão principal/secundária)", Foreground = UI.Muted, Margin = new Thickness(0, 4, 0, 8) };
-    readonly TextBlock profile = UI.Text("Lendo perfil…", 12, UI.Lime), status = UI.Text("Iniciando motor local…", 11, UI.Muted), ollamaState = UI.Text("Verificando Ollama…", 11, UI.Muted), catalogState = UI.Text("Aguardando catálogo", 11, UI.Muted), previewTitle = UI.Text("Prévia do blueprint", 21);
-    readonly WrapPanel recipes = new(), products = new(), machines = new();
+    readonly TextBlock ollamaState = UI.Text("Verificando Ollama…", 11, UI.Muted);
+    readonly WrapPanel machines = new();
     readonly StackPanel objectiveQueue = new();
     readonly StackPanel summary = new();
     readonly ListBox models = new() { MaxHeight = 72, Background = UI.Brush("#101813"), Foreground = Brushes.WhiteSmoke, BorderBrush = UI.Line };
@@ -171,61 +169,33 @@ sealed partial class MainWindow : Window
 
     public MainWindow(string root)
     {
-        Title = "ForgePlan · Factorio Blueprint Studio"; Width = 1640; Height = 1040; MinWidth = 1220; MinHeight = 800;
-        WindowStartupLocation = WindowStartupLocation.CenterScreen; Background = UI.Brush("#101713"); Foreground = Brushes.WhiteSmoke; FontFamily = new FontFamily("Segoe UI");
+        InitializeComponent();
         backend = new Backend(root);
         rootFolder = root;
-        var shell = new Grid(); shell.RowDefinitions.Add(new RowDefinition { Height = new GridLength(65) }); shell.RowDefinitions.Add(new RowDefinition()); shell.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) }); Content = shell;
-        var header = new DockPanel { Margin = new Thickness(22, 8, 22, 8) };
-        var local = UI.Text("WINDOWS  ·  LOCAL", 11, UI.Lime); local.VerticalAlignment = VerticalAlignment.Center; DockPanel.SetDock(local, Dock.Right); header.Children.Add(local);
-        var brand = new StackPanel(); brand.Children.Add(new TextBlock { Text = "▦  FORGEPLAN", FontSize = 22, Foreground = UI.Lime }); brand.Children.Add(new TextBlock { Text = "FACTORIO BLUEPRINT STUDIO", FontSize = 9, Foreground = UI.Muted }); header.Children.Add(brand); shell.Children.Add(header);
-        var body = new Grid(); body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(330) }); body.ColumnDefinitions.Add(new ColumnDefinition()); body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(340) }); Grid.SetRow(body, 1); shell.Children.Add(body);
-        var left = new StackPanel { Margin = new Thickness(18, 8, 18, 16) };
-        var leftGrid = new Grid(); leftGrid.RowDefinitions.Add(new RowDefinition()); leftGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); leftGrid.Children.Add(UI.Scroll(left));
-        var leftBorder = new Border { Background = UI.Panel, BorderBrush = UI.Line, BorderThickness = new Thickness(0, 1, 1, 0), Child = leftGrid }; body.Children.Add(leftBorder);
-        left.Children.Add(UI.Text("Nova fábrica", 23)); UI.Section(left, "01  Perfil da partida");
-        left.Children.Add(profile);
-        UI.Label(left, "Mundo / save · define os mods e receitas carregados"); left.Children.Add(saveChoices);
-        var saveButtons = new StackPanel { Orientation = Orientation.Horizontal };
-        saveButtons.Children.Add(UI.Button("Atualizar mundos", async (_, _) => await LoadSaveList())); saveButtons.Children.Add(UI.Button("Procurar…", (_, _) => ChooseSave())); saveButtons.Children.Add(UI.Button("Usar mods ativos", (_, _) => SelectActiveMods())); left.Children.Add(saveButtons); left.Children.Add(allowSaveVersions);
-        var paths = new StackPanel(); UI.Label(paths, "Executável do Factorio"); paths.Children.Add(exe); UI.Label(paths, "Pasta de mods"); paths.Children.Add(mods);
-        left.Children.Add(new Expander { Header = "Caminhos do Factorio", Content = paths, Foreground = UI.Muted, Margin = new Thickness(0, 4, 0, 4) });
-        load = UI.Button("Carregar perfil de mods", async (_, _) => await LoadMods()); left.Children.Add(load);
-        UI.Section(left, "02  Produção"); UI.Label(left, "Grupo de itens · dados do jogo/mods"); left.Children.Add(itemGroupFilter); UI.Label(left, "Subgrupo"); left.Children.Add(itemSubgroupFilter); UI.Label(left, "Buscar receita ou item"); left.Children.Add(search); left.Children.Add(catalogState); left.Children.Add(UI.Scroll(recipes, 170));
-        UI.Label(left, "Saída desejada"); left.Children.Add(products); UI.Label(left, "Saída por minuto"); left.Children.Add(rate); UI.Label(left, "Máquina · configure na aba Equipamentos"); left.Children.Add(machineBadge);
-        left.Children.Add(UI.Button("Adicionar fábrica independente", (_, _) => AddObjective())); left.Children.Add(objectiveQueue);
+        previewFrame.Child = preview;
+        factoryTabsHost.Content = BuildFactoryTabs();
+        machineBadgeHost.Content = machineBadge;
         aiPanel.Children.Add(UI.Text("Assistente de layout", 19)); UI.Label(aiPanel, "Endereço Ollama"); aiPanel.Children.Add(ollamaUrl); aiPanel.Children.Add(UI.Button("Atualizar modelos", async (_, _) => await RefreshOllama(true)));
         UI.Label(aiPanel, "Tempo máximo para sugestão (segundos)"); aiPanel.Children.Add(timeoutBox); aiPanel.Children.Add(allowFallback);
         UI.Label(aiPanel, "Preferências para a IA (opcional)"); aiInstructions.Height = 100; aiPanel.Children.Add(aiInstructions);
         aiPanel.Children.Add(UI.Text("A IA sugere a disposição dentro do perfil escolhido. Use 0 em máquinas por linha para permitir essa escolha; os equipamentos e parâmetros manuais são respeitados.", 12, UI.Muted));
-        var generatePanel = new StackPanel { Margin = new Thickness(18, 4, 18, 10) }; Grid.SetRow(generatePanel, 1); leftGrid.Children.Add(generatePanel);
+        generatePanel.Children.Add(UI.Scroll(objectiveQueue, 150));
         generatePanel.Children.Add(UI.Text("IA LOCAL", 10, UI.Lime)); generatePanel.Children.Add(ollamaState); generatePanel.Children.Add(models);
         generate = UI.Button("✳  Gerar blueprint(s)", async (_, _) => await Generate(), true); generate.IsEnabled = false; generatePanel.Children.Add(generate);
         cancelGeneration = UI.Button("Cancelar geração", (_, _) => generationCancellation?.Cancel()); cancelGeneration.IsEnabled = false; generatePanel.Children.Add(cancelGeneration); generatePanel.Children.Add(progress);
-
-        var center = new Grid { Margin = new Thickness(20, 12, 20, 10) }; center.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); center.RowDefinitions.Add(new RowDefinition()); center.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); Grid.SetColumn(center, 1); body.Children.Add(center);
-        var toolbar = new DockPanel { Margin = new Thickness(0, 0, 0, 12) };
-        var controls = new StackPanel { Orientation = Orientation.Horizontal }; DockPanel.SetDock(controls, Dock.Right);
-        controls.Children.Add(UI.Button("−", (_, _) => preview.ChangeZoom(-.2))); controls.Children.Add(UI.Button("+", (_, _) => preview.ChangeZoom(.2))); controls.Children.Add(UI.Button("Ajustar", (_, _) => preview.Fit())); toolbar.Children.Add(controls);
-        var heading = new StackPanel(); heading.Children.Add(UI.Text("SPRITES DO JOGO  /  2.5D", 10, UI.Muted)); heading.Children.Add(previewTitle); toolbar.Children.Add(heading); center.Children.Add(toolbar);
-        var frame = new Border { Background = UI.Brush("#222922"), BorderBrush = UI.Line, BorderThickness = new Thickness(1), Child = preview, ClipToBounds = true }; Grid.SetRow(frame, 1); center.Children.Add(frame);
-        var exports = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 10, 0, 0) }; Grid.SetRow(exports, 2); center.Children.Add(exports);
-        exports.Children.Add(UI.Button("Salvar prévia PNG", (_, _) => SavePreview())); exports.Children.Add(UI.Button("Copiar blueprint", (_, _) => { if (result != null) { Clipboard.SetText(J.S(result, "blueprint_string")); status.Text = "Blueprint copiado."; } })); exports.Children.Add(UI.Button("Copiar livro", (_, _) => { var book = J.S(batchResult, "blueprint_book_string"); if (book == "") book = J.S(result, "blueprint_book_string"); if (book != "") { Clipboard.SetText(book); status.Text = "Livro de blueprints copiado."; } })); exports.Children.Add(UI.Button("Exportar livro", (_, _) => ExportBook())); exports.Children.Add(UI.Button("Exportar .txt", (_, _) => Export()));
+        load = UI.Button("Carregar perfil de mods", async (_, _) => await LoadMods());
         summary.Children.Add(UI.Text("Selecione uma receita e gere a prévia.", 12, UI.Muted));
-        var rightBorder = new Border { Background = UI.Panel, BorderBrush = UI.Line, BorderThickness = new Thickness(1, 1, 0, 0), Child = BuildFactoryTabs() }; Grid.SetColumn(rightBorder, 2); body.Children.Add(rightBorder);
-        var footer = new Border { BorderBrush = UI.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(18, 0, 18, 0), Child = status }; Grid.SetRow(footer, 2); shell.Children.Add(footer);
-        search.TextChanged += (_, _) => RenderRecipes();
-        itemGroupFilter.SelectionChanged += (_, _) => { RenderSubgroups(); RenderRecipes(); };
-        itemSubgroupFilter.SelectionChanged += (_, _) => RenderRecipes();
+        InitializeProducts();
         saveChoices.SelectionChanged += (_, _) => { if (saveChoices.SelectedItem is ComboBoxItem item) desiredSavePath = item.Tag?.ToString() ?? ""; };
         Loaded += async (_, _) => await Initialize();
         ollamaTimer.Tick += async (_, _) => { if (!busy) await RefreshOllama(false); };
+        Closing += (_, _) => appClosing = true;
         Closed += (_, _) => { try { SaveLastFactory(); } catch (IOException) { } ollamaTimer.Stop(); generationTimer.Stop(); generationCancellation?.Cancel(); preview.Stop(); backend.Dispose(); };
     }
 
     void SetBusy(bool value, string text)
     {
-        busy = value; load.IsEnabled = !value; generate.IsEnabled = !value && selectedRecipe != null && selectedMachine != ""; status.Text = text;
+        busy = value; load.IsEnabled = !value; loadMenu.IsEnabled = !value; generate.IsEnabled = !value && selectedRecipe != null && selectedMachine != ""; status.Text = text;
         progress.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
         if (cancelGeneration != null) cancelGeneration.IsEnabled = value && generationCancellation != null;
     }
@@ -235,6 +205,7 @@ sealed partial class MainWindow : Window
         try
         {
             ApplyStatus(await backend.Send("status"));
+            await RefreshProducts();
             var hasEquipmentProfile = LoadEquipmentProfile();
             await LoadSaveList(); await RefreshOllama(false);
             var saved = Path.Combine(rootFolder, ".runtime", "last-factory.json");
@@ -247,7 +218,7 @@ sealed partial class MainWindow : Window
                 }
                 catch (Exception e) { status.Text = "Não foi possível restaurar o último perfil: " + e.Message; }
             }
-            status.Text = "Perfil pronto. Configure equipamentos e layout nas abas à direita.";
+            status.Text = recipeData.Count > 0 ? "Perfil pronto. Configure equipamentos e layout nas abas à direita." : "Catálogo não carregado. Use Perfil → Carregar perfil.";
         }
         catch (Exception e) { Error(e); }
         finally { SetBusy(false, status.Text); ollamaTimer.Start(); }
@@ -256,20 +227,11 @@ sealed partial class MainWindow : Window
     {
         exe.Text = J.S(data, "factorio_exe"); mods.Text = J.S(data, "mods_dir"); desiredSavePath = J.S(data, "save_path"); allowSaveVersions.IsChecked = J.B(data, "save_allow_versions"); ollamaUrl.Text = J.S(data, "ollama_url", "http://127.0.0.1:11434");
         profile.Text = J.N(data?["profile"], "count") + " mods ativos" + (desiredSavePath != "" ? " · save: " + Path.GetFileName(desiredSavePath) : " · mod-list.json") + " · Factorio " + J.S(data, "game_version");
+        profileMenu.ToolTip = profile.Text;
         if (saveData.Count > 0) RenderSaveChoices();
         recipeData = J.A(data?["catalog"], "recipes");
-        var previousGroup = (itemGroupFilter.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "";
-        itemGroupFilter.Items.Clear(); itemGroupFilter.Items.Add(new ComboBoxItem { Content = "Todos os grupos", Tag = "" });
-        foreach (var group in J.A(data?["catalog"], "groups"))
-        {
-            var content = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-            content.Children.Add(Art.Icon(J.S(group, "icon"), J.S(group, "name"), 20));
-            content.Children.Add(new TextBlock { Text = "  " + J.S(group, "label"), Foreground = Brushes.WhiteSmoke, VerticalAlignment = VerticalAlignment.Center });
-            itemGroupFilter.Items.Add(new ComboBoxItem { Content = content, Tag = J.S(group, "name"), ToolTip = J.S(group, "name") });
-        }
-        itemGroupFilter.SelectedItem = itemGroupFilter.Items.Cast<ComboBoxItem>().FirstOrDefault(i => i.Tag?.ToString() == previousGroup) ?? itemGroupFilter.Items[0];
-        RenderSubgroups();
-        RenderRecipes();
+        catalogNotice.Text = recipeData.Count == 0 ? "Catálogo não carregado · Perfil → Carregar perfil" : "";
+        ApplyGameFont();
         equipmentData = data?["equipment"] as JsonObject ?? new JsonObject(); RenderEquipment(); RenderBalancerChoices();
     }
     void ChooseSave()
@@ -305,7 +267,7 @@ sealed partial class MainWindow : Window
     async Task LoadMods()
     {
         SetBusy(true, "Preparando cópia dos mods e carregando protótipos…");
-        try { await SaveSettings(); ApplyStatus(await backend.Send("load", new JsonObject { ["factorio_exe"] = exe.Text, ["mods_dir"] = mods.Text, ["save_path"] = desiredSavePath, ["allow_versions"] = allowSaveVersions.IsChecked == true })); status.Text = "Catálogo carregado: " + recipeData.Count + " receitas do perfil selecionado."; }
+        try { await SaveSettings(); ApplyStatus(await backend.Send("load", new JsonObject { ["factorio_exe"] = exe.Text, ["mods_dir"] = mods.Text, ["save_path"] = desiredSavePath, ["allow_versions"] = allowSaveVersions.IsChecked == true })); await RefreshProducts(); status.Text = "Catálogo carregado: " + recipeData.Count + " receitas do perfil selecionado."; }
         catch (Exception e) { Error(e); }
         finally { SetBusy(false, status.Text); }
     }
@@ -336,37 +298,13 @@ sealed partial class MainWindow : Window
         var button = new Button { Content = Art.Icon(path, name), Width = 45, Height = 45, Padding = new Thickness(5), Margin = new Thickness(2), BorderBrush = selected ? UI.Lime : UI.Line, BorderThickness = new Thickness(selected ? 2 : 1), ToolTip = tooltip ?? J.Label(name) + "\n" + name };
         System.Windows.Automation.AutomationProperties.SetName(button, name); button.Click += (sender, e) => { if (!busy) click(sender, e); }; return button;
     }
-    void RenderRecipes()
+    async Task SelectRecipe(JsonNode recipe, string? product = null)
     {
-        recipes.Children.Clear(); var term = search.Text.Trim();
-        var groupName = (itemGroupFilter.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "";
-        var subgroupName = (itemSubgroupFilter.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "";
-        var matches = recipeData.Where(r => (groupName == "" || J.S(r, "item_group") == groupName) && (subgroupName == "" || J.S(r, "item_subgroup") == subgroupName) && (J.S(r, "name").Contains(term, StringComparison.OrdinalIgnoreCase) || J.S(r, "label").Contains(term, StringComparison.OrdinalIgnoreCase) || J.S(r, "item_group_label").Contains(term, StringComparison.OrdinalIgnoreCase) || J.S(r, "item_subgroup_label").Contains(term, StringComparison.OrdinalIgnoreCase) || J.A(r, "products").Any(p => J.S(p, "name").Contains(term, StringComparison.OrdinalIgnoreCase)) || J.A(r, "ingredients").Any(i => J.S(i, "name").Contains(term, StringComparison.OrdinalIgnoreCase)))).ToList();
-        catalogState.Text = matches.Count > 96 ? "96 de " + matches.Count + " receitas · refine a busca" : matches.Count + " receitas · passe o mouse nos ícones";
-        foreach (var recipe in matches.Take(96))
-        {
-            if (recipe == null) continue;
-            var captured = recipe;
-            recipes.Children.Add(IconChoice(J.S(recipe, "icon"), J.S(recipe, "name"), J.S(recipe, "name") == J.S(selectedRecipe, "name"), async (_, _) => await SelectRecipe(captured), J.S(recipe, "label") + "\n" + J.S(recipe, "name")));
-        }
-    }
-    void RenderSubgroups()
-    {
-        var previous = (itemSubgroupFilter.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "";
-        var groupName = (itemGroupFilter.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "";
-        var subgroups = recipeData.Where(r => groupName == "" || J.S(r, "item_group") == groupName)
-            .GroupBy(r => J.S(r, "item_subgroup"))
-            .Select(g => new { Name = g.Key, Label = g.Select(r => J.S(r, "item_subgroup_label")).FirstOrDefault(x => x != "") ?? g.Key, Order = g.Select(r => J.S(r, "item_subgroup_order")).FirstOrDefault() ?? "z" })
-            .OrderBy(g => g.Order, StringComparer.OrdinalIgnoreCase).ThenBy(g => g.Label, StringComparer.OrdinalIgnoreCase).ToList();
-        itemSubgroupFilter.Items.Clear(); itemSubgroupFilter.Items.Add(new ComboBoxItem { Content = "Todos os subgrupos", Tag = "" });
-        foreach (var subgroup in subgroups) itemSubgroupFilter.Items.Add(new ComboBoxItem { Content = subgroup.Label, Tag = subgroup.Name });
-        itemSubgroupFilter.SelectedItem = itemSubgroupFilter.Items.Cast<ComboBoxItem>().FirstOrDefault(i => i.Tag?.ToString() == previous) ?? itemSubgroupFilter.Items[0];
-    }
-    async Task SelectRecipe(JsonNode recipe)
-    {
-        selectedRecipe = recipe; selectedMachine = ""; selectedProduct = ""; generate.IsEnabled = false; RenderRecipes(); products.Children.Clear(); machines.Children.Clear();
+        selectedRecipe = recipe; selectedMachine = ""; selectedProduct = ""; generate.IsEnabled = false; machines.Children.Clear();
         var outputs = J.A(recipe, "products").ToList();
-        selectedProduct = outputs.FirstOrDefault(p => J.S(p, "type") == "item")?["name"]?.ToString() ?? outputs.FirstOrDefault()?["name"]?.ToString() ?? ""; RenderProducts();
+        selectedProduct = product != null && outputs.Any(p => J.S(p, "name") == product) ? product
+            : outputs.FirstOrDefault(p => J.S(p, "type") == "item")?["name"]?.ToString() ?? outputs.FirstOrDefault()?["name"]?.ToString() ?? "";
+        SyncProductSelection();
         var recipeName = J.S(recipe, "name");
         try
         {
@@ -381,16 +319,6 @@ sealed partial class MainWindow : Window
         }
         catch (Exception e) { Error(e); }
     }
-    void RenderProducts()
-    {
-        products.Children.Clear();
-        foreach (var product in J.A(selectedRecipe, "products"))
-        {
-            var name = J.S(product, "name");
-            var fluid = J.S(product, "type") == "fluid";
-            products.Children.Add(IconChoice(J.S(product, "icon"), name, selectedProduct == name, (_, _) => { selectedProduct = name; RenderProducts(); }, J.Label(name) + (fluid ? " · fluido" : "") + "\n" + J.N(product, "amount") + (fluid ? " u por ciclo" : " por ciclo")));
-        }
-    }
     void RenderMachines()
     {
         machines.Children.Clear();
@@ -404,7 +332,7 @@ sealed partial class MainWindow : Window
     {
         if (queuedObjectives.Count >= 32) { status.Text = "O lote aceita até 32 fábricas independentes."; return; }
         if (selectedRecipe == null || selectedProduct == "" || selectedMachine == "") { status.Text = "Selecione receita, saída e máquina antes de adicionar."; return; }
-        if (!double.TryParse(rate.Text.Replace(',', '.'), CultureInfo.InvariantCulture, out var target) || target <= 0) { status.Text = "Informe uma meta positiva por minuto."; return; }
+        if (!TryTargetPerMinute(out var target)) { status.Text = "Informe uma meta positiva por minuto."; return; }
         queuedObjectives.Add(new QueuedObjective(J.S(selectedRecipe, "name"), selectedProduct, selectedMachine, target, (JsonObject)FactoryOptions().DeepClone()));
         batchResult = null; RenderObjectiveQueue(); status.Text = "Fábrica adicionada. Cada item será planejado separadamente.";
     }
@@ -425,7 +353,7 @@ sealed partial class MainWindow : Window
     }
     async Task Generate()
     {
-        var validRate = double.TryParse(rate.Text.Replace(',', '.'), CultureInfo.InvariantCulture, out var target) && target > 0;
+        var validRate = TryTargetPerMinute(out var target);
         if (queuedObjectives.Count == 0 && !validRate) { status.Text = "Informe uma meta positiva por minuto."; return; }
         generationCancellation = new CancellationTokenSource(); generationStage = "Preparando fábrica"; generationWatch.Restart(); generationTimer.Start();
         SetBusy(true, generationStage);
@@ -446,7 +374,7 @@ sealed partial class MainWindow : Window
                 result = first["result"] is JsonNode firstFactory ? BatchPreview(firstFactory) : null; if (result == null) throw new InvalidDataException("A geração retornou sucesso sem prévia.");
                 selectedRecipe = recipeData.FirstOrDefault(r => J.S(r, "name") == J.S(first, "recipe_name"))?.DeepClone();
                 selectedProduct = J.S(result["plan"], "product_name"); selectedMachine = J.S(result["plan"], "machine_name");
-                RenderRecipes(); RenderProducts();
+                SyncProductSelection();
                 GenerateView(result, selectedProduct, selectedMachine); RenderBatchResults(); queuedObjectives.Clear(); RenderObjectiveQueue();
                 status.Text = J.N(batchResult, "success_count") + " fábricas geradas · " + J.N(batchResult, "failure_count") + " falhas independentes.";
                 return;
@@ -496,7 +424,7 @@ sealed partial class MainWindow : Window
             if (result == null) throw new InvalidDataException("A geração conjunta retornou sucesso sem prévia.");
             selectedRecipe = recipeData.FirstOrDefault(recipe => J.S(recipe, "name") == J.S(first, "recipe_name"))?.DeepClone();
             selectedProduct = J.S(result["plan"], "product_name"); selectedMachine = J.S(result["plan"], "machine_name");
-            RenderRecipes(); RenderProducts(); GenerateView(result, selectedProduct, selectedMachine);
+            SyncProductSelection(); GenerateView(result, selectedProduct, selectedMachine);
             RenderIntegratedPlan(data);
             RenderBatchResults();
             status.Text = J.N(data, "success_count") + " bloco(s) físicos gerados · " + J.N(data, "failure_count") + " falha(s) · conecte as portas entre blocos no jogo.";
@@ -562,7 +490,7 @@ sealed partial class MainWindow : Window
             if (result == null) throw new InvalidDataException("A geração da cadeia retornou sucesso sem prévia.");
             selectedRecipe = recipeData.FirstOrDefault(recipe => J.S(recipe, "name") == J.S(first, "recipe_name"))?.DeepClone();
             selectedProduct = J.S(result["plan"], "product_name"); selectedMachine = J.S(result["plan"], "machine_name");
-            RenderRecipes(); RenderProducts(); GenerateView(result, selectedProduct, selectedMachine); RenderBatchResults();
+            SyncProductSelection(); GenerateView(result, selectedProduct, selectedMachine); RenderBatchResults();
             status.Text = J.N(batchResult, "success_count") + " módulos independentes gerados · " + J.N(batchResult, "failure_count") + " falhas · conecte as entradas e saídas no jogo.";
         }
         catch (OperationCanceledException) { status.Text = "Geração da cadeia cancelada."; }
@@ -636,7 +564,7 @@ sealed partial class MainWindow : Window
             {
                 selectedRecipe = recipeData.FirstOrDefault(r => J.S(r, "name") == J.S(entry, "recipe_name"))?.DeepClone();
                 result = factory is JsonNode selectedFactory ? BatchPreview(selectedFactory) : null; selectedProduct = J.S(result?["plan"], "product_name"); selectedMachine = J.S(result?["plan"], "machine_name");
-                RenderRecipes(); RenderProducts();
+                SyncProductSelection();
                 if (result != null) GenerateView(result, selectedProduct, selectedMachine); RenderBatchResults();
             }));
         }
@@ -806,6 +734,46 @@ sealed partial class MainWindow : Window
         if (result == null) return;
         var dialog = new SaveFileDialog { Filter = "Imagem PNG (*.png)|*.png", FileName = selectedProduct + "-previa.png" };
         if (dialog.ShowDialog(this) == true) { preview.SavePng(dialog.FileName); status.Text = "Prévia salva."; }
+    }
+    void CopyBlueprint() { if (result != null) { Clipboard.SetText(J.S(result, "blueprint_string")); status.Text = "Blueprint copiado."; } }
+    void CopyBook() { var book = J.S(batchResult, "blueprint_book_string"); if (book == "") book = J.S(result, "blueprint_book_string"); if (book != "") { Clipboard.SetText(book); status.Text = "Livro de blueprints copiado."; } }
+
+    // Menus e barra da prévia (MainWindow.xaml)
+    async void OpenConfig_Click(object sender, RoutedEventArgs e) => await OpenFactoryProfile();
+    void SaveConfig_Click(object sender, RoutedEventArgs e) => SaveFactoryProfile();
+    void Exit_Click(object sender, RoutedEventArgs e) => Close();
+    async void Generate_Click(object sender, RoutedEventArgs e)
+    {
+        if (!generate.IsEnabled) { status.Text = busy ? "Aguarde a operação em andamento." : "Selecione um produto com máquina compatível antes de gerar."; return; }
+        await Generate();
+    }
+    async void GenerateIntegrated_Click(object sender, RoutedEventArgs e)
+    {
+        if (!busy && queuedObjectives.Count == 0) { status.Text = "Adicione fábricas à fila antes de gerar a cadeia conjunta."; return; }
+        await GenerateIntegrated();
+    }
+    async void GenerateBus_Click(object sender, RoutedEventArgs e) => await GenerateBus();
+    async void GenerateBalancer_Click(object sender, RoutedEventArgs e) => await GenerateBalancer();
+    void CopyBlueprint_Click(object sender, RoutedEventArgs e) => CopyBlueprint();
+    void CopyBook_Click(object sender, RoutedEventArgs e) => CopyBook();
+    void ExportTxt_Click(object sender, RoutedEventArgs e) => Export();
+    void ExportBook_Click(object sender, RoutedEventArgs e) => ExportBook();
+    void ExportPng_Click(object sender, RoutedEventArgs e) => SavePreview();
+    void AddObjective_Click(object sender, RoutedEventArgs e) => AddObjective();
+    void ZoomOut_Click(object sender, RoutedEventArgs e) => preview.ChangeZoom(-.2);
+    void ZoomIn_Click(object sender, RoutedEventArgs e) => preview.ChangeZoom(.2);
+    void Fit_Click(object sender, RoutedEventArgs e) => preview.Fit();
+    void Help_Click(object sender, RoutedEventArgs e)
+    {
+        var docs = Path.Combine(rootFolder, "docs", "project");
+        GameDialog.Show(this, "Limitações conhecidas",
+            "• Validação no jogo é parcial: o harness mede um conjunto pequeno de casos; o restante não é verificado operacionalmente.\n" +
+            "• A pesquisa do save não é lida; receitas ainda bloqueadas podem aparecer.\n" +
+            "• Fluidos não entram na simulação temporal offline.\n" +
+            "• Fila, cadeia conjunta e livro modular geram blocos separados, sem logística ou energia compartilhadas: conecte as portas no jogo.\n" +
+            "• Balanceadores transportam um único material e não são throughput-unlimited.\n" +
+            "• Barramento: medido só em cenários pequenos vanilla; saídas intermediárias fora do barramento ficam desconectadas.\n\n" +
+            "Detalhes:\n" + Path.Combine(docs, "KNOWN-ISSUES-AND-LIMITATIONS.md") + "\n" + Path.Combine(docs, "BUS-CALIBRATION.md"));
     }
 }
 

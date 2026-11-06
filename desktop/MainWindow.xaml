@@ -1,0 +1,192 @@
+<Window x:Class="ForgePlan.MainWindow"
+        x:ClassModifier="internal"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ForgePlan"
+        Title="ForgePlan · Factorio Blueprint Studio"
+        Width="1640" Height="1040" MinWidth="1220" MinHeight="800"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI"
+        Background="{StaticResource FactorioBackgroundBrush}"
+        Foreground="{StaticResource FactorioTextBrush}">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <!-- Menu -->
+    <Border Grid.Row="0" Background="{StaticResource FactorioPanelBrush}" BorderBrush="{StaticResource FactorioBorderDarkBrush}" BorderThickness="0,0,0,2">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0" FontSize="11"
+                   Foreground="{StaticResource FactorioTextBrush}" Opacity="0.7"
+                   Text="FORGEPLAN · FACTORIO BLUEPRINT STUDIO · WINDOWS · LOCAL"/>
+        <Menu x:Name="mainMenu" Background="Transparent" Foreground="{StaticResource FactorioTextBrush}" Padding="2">
+          <Menu.Resources>
+            <Style TargetType="MenuItem">
+              <Setter Property="Foreground" Value="{StaticResource FactorioTextBrush}"/>
+              <Setter Property="Template">
+                <Setter.Value>
+                  <ControlTemplate TargetType="MenuItem">
+                    <Grid>
+                      <Border x:Name="face" Background="Transparent" Padding="10,5" MinWidth="40">
+                        <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" TextElement.Foreground="{TemplateBinding Foreground}"/>
+                      </Border>
+                      <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"
+                             IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                        <Grid MinWidth="220">
+                          <Border Background="{StaticResource FactorioBorderDarkBrush}"/>
+                          <Border Background="{StaticResource FactorioBorderLightBrush}" Margin="0,0,2,2"/>
+                          <Border Background="{StaticResource FactorioPanelBrush}" Margin="2" Padding="2">
+                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                          </Border>
+                        </Grid>
+                      </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                      <Trigger Property="IsHighlighted" Value="True">
+                        <Setter TargetName="face" Property="Background" Value="{StaticResource FactorioSelectionBrush}"/>
+                        <Setter Property="Foreground" Value="#1B1A1B"/>
+                      </Trigger>
+                      <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Opacity" Value="0.45"/>
+                      </Trigger>
+                    </ControlTemplate.Triggers>
+                  </ControlTemplate>
+                </Setter.Value>
+              </Setter>
+            </Style>
+          </Menu.Resources>
+          <MenuItem Header="_Arquivo">
+            <MenuItem Header="Abrir configuração…" Click="OpenConfig_Click"/>
+            <MenuItem Header="Salvar configuração…" Click="SaveConfig_Click"/>
+            <Separator/>
+            <MenuItem Header="Sair" Click="Exit_Click"/>
+          </MenuItem>
+          <MenuItem x:Name="profileMenu" Header="_Perfil">
+            <MenuItem Header="Executável, mods e mundo…" Click="ProfileDialog_Click"/>
+            <MenuItem Header="Atualizar mundos" Click="RefreshSaves_Click"/>
+            <MenuItem Header="Procurar save…" Click="BrowseSave_Click"/>
+            <MenuItem Header="Usar mods ativos" Click="ActiveMods_Click"/>
+            <Separator/>
+            <MenuItem x:Name="loadMenu" Header="Carregar perfil" Click="LoadProfile_Click"/>
+          </MenuItem>
+          <MenuItem Header="_Gerar">
+            <MenuItem Header="Fábrica única / fila independente" Click="Generate_Click"/>
+            <MenuItem Header="Cadeia conjunta da fila · Blueprint Book" Click="GenerateIntegrated_Click"/>
+            <MenuItem Header="Fábrica com barramento" Click="GenerateBus_Click"/>
+            <MenuItem Header="Balanceador" Click="GenerateBalancer_Click"/>
+          </MenuItem>
+          <MenuItem Header="_Exportar">
+            <MenuItem Header="Copiar blueprint" Click="CopyBlueprint_Click"/>
+            <MenuItem Header="Copiar livro" Click="CopyBook_Click"/>
+            <Separator/>
+            <MenuItem Header="Salvar blueprint .txt…" Click="ExportTxt_Click"/>
+            <MenuItem Header="Salvar livro .txt…" Click="ExportBook_Click"/>
+            <MenuItem Header="Salvar prévia PNG…" Click="ExportPng_Click"/>
+          </MenuItem>
+          <MenuItem Header="A_juda">
+            <MenuItem Header="Limitações conhecidas…" Click="Help_Click"/>
+          </MenuItem>
+        </Menu>
+      </DockPanel>
+    </Border>
+
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="330"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="380"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- Coluna Produtos -->
+      <ContentControl Grid.Column="0" Style="{StaticResource FactorioPanel}" Margin="4">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+          <DockPanel Grid.Row="0" Margin="0,0,0,6">
+            <TextBlock x:Name="productCount" DockPanel.Dock="Right" VerticalAlignment="Bottom" FontSize="11" Opacity="0.75"/>
+            <TextBlock Text="Produtos" Style="{StaticResource FactorioTitle}"/>
+          </DockPanel>
+          <TextBox x:Name="productSearch" Grid.Row="1" Margin="0,0,0,6" Padding="6" FontSize="12" ToolTip="Buscar produto no grupo selecionado"/>
+          <TabControl x:Name="groupTabs" Grid.Row="2" Padding="4"
+                      Background="{StaticResource FactorioInsetBrush}" BorderBrush="{StaticResource FactorioBorderDarkBrush}"/>
+          <StackPanel Grid.Row="3" Margin="0,8,0,0">
+            <TextBlock x:Name="variantLabel" Text="Receita" FontSize="12" Margin="0,0,0,3"/>
+            <ContentControl Style="{StaticResource FactorioInsetPanel}" Padding="2">
+              <ScrollViewer x:Name="variantScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" MinHeight="44">
+                <local:SlotGrid x:Name="variantSlots" Orientation="Horizontal"/>
+              </ScrollViewer>
+            </ContentControl>
+          </StackPanel>
+          <StackPanel Grid.Row="4" Margin="0,8,0,0">
+            <TextBlock Text="Meta de produção" FontSize="12" Margin="0,0,0,3"/>
+            <DockPanel>
+              <ComboBox x:Name="rateUnit" DockPanel.Dock="Right" Width="80" Margin="6,0,0,0" SelectedIndex="0" VerticalContentAlignment="Center" Foreground="#1B1A1B">
+                <ComboBoxItem Content="/min" Tag="min"/>
+                <ComboBoxItem Content="/s" Tag="s"/>
+              </ComboBox>
+              <TextBox x:Name="rate" Text="60" Padding="6" FontSize="12" ToolTip="Itens por minuto ou por segundo; aceita vírgula decimal"/>
+            </DockPanel>
+          </StackPanel>
+          <StackPanel Grid.Row="5" Margin="0,8,0,0">
+            <TextBlock Text="Máquina · configure na aba Equipamentos" FontSize="11" Opacity="0.75"/>
+            <ContentControl x:Name="machineBadgeHost" Margin="0,2,0,4"/>
+            <Button Content="Adicionar fábrica independente" Style="{StaticResource FactorioButton}" Click="AddObjective_Click"/>
+          </StackPanel>
+        </Grid>
+      </ContentControl>
+
+      <!-- Prévia -->
+      <Grid Grid.Column="1" Margin="10,8,10,6">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <DockPanel Grid.Row="0" Margin="0,0,0,8">
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button Content="−" Width="36" Margin="2,0" Style="{StaticResource FactorioButton}" Click="ZoomOut_Click"/>
+            <Button Content="+" Width="36" Margin="2,0" Style="{StaticResource FactorioButton}" Click="ZoomIn_Click"/>
+            <Button Content="Ajustar" Margin="2,0" Style="{StaticResource FactorioButton}" Click="Fit_Click"/>
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Text="SPRITES DO JOGO  /  2.5D" FontSize="10" Opacity="0.7"/>
+            <TextBlock x:Name="previewTitle" Text="Prévia do blueprint" FontSize="21" TextWrapping="Wrap" Foreground="{StaticResource FactorioTitleBrush}"/>
+          </StackPanel>
+        </DockPanel>
+        <ContentControl Grid.Row="1" Style="{StaticResource FactorioInsetPanel}" Padding="0">
+          <Border x:Name="previewFrame" Background="#222922" ClipToBounds="True"/>
+        </ContentControl>
+      </Grid>
+
+      <!-- Coluna direita (temporária: abas atuais) -->
+      <ContentControl Grid.Column="2" Style="{StaticResource FactorioPanel}" Margin="4" Padding="2">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+          <ContentControl x:Name="factoryTabsHost" Grid.Row="0"/>
+          <StackPanel x:Name="generatePanel" Grid.Row="1" Margin="10,4,10,6"/>
+        </Grid>
+      </ContentControl>
+    </Grid>
+
+    <!-- Barra de status -->
+    <Border Grid.Row="2" Background="{StaticResource FactorioInsetBrush}" BorderBrush="{StaticResource FactorioBorderLightBrush}" BorderThickness="0,1,0,0" Padding="12,4">
+      <DockPanel>
+        <TextBlock x:Name="profile" DockPanel.Dock="Right" Text="Lendo perfil…" FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource FactorioGreenBrush}"/>
+        <TextBlock x:Name="fontState" DockPanel.Dock="Right" FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center" Opacity="0.75"/>
+        <TextBlock x:Name="catalogNotice" DockPanel.Dock="Right" FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource FactorioSelectionBrush}"/>
+        <TextBlock x:Name="status" Text="Iniciando motor local…" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+      </DockPanel>
+    </Border>
+  </Grid>
+</Window>

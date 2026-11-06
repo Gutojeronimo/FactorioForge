@@ -8,34 +8,34 @@ Destinos: **Arq** / **Perfil** / **Gerar** / **Exp** / **Ajuda** (menus), **Prod
 
 | Controle atual | Tipo | Comando do motor + payload | Destino | Paridade |
 |---|---|---|---|---|
-| `profile` TextBlock "N mods ativos · save · Factorio X" (P:157,258) | rótulo | local (preenchido por `status`) | Status (e cabeçalho do menu Perfil) | [ ] |
-| `saveChoices` ComboBox de mundos, 1º item "Mods ativos · mod-list.json" (P:153,220,290-303) | combo | local (guarda `desiredSavePath`); lista vem de `saves` | Perfil (submenu/diálogo de mundo) | [ ] |
-| Botão "Atualizar mundos" (P:190) → `LoadSaveList` (P:285) | botão | `saves` (sem payload) → array `{path,name,modified,directory}` | Perfil | [ ] |
-| Botão "Procurar…" (P:190) → `ChooseSave` (P:275), OpenFileDialog `*.zip` | botão | local (define `desiredSavePath`) | Perfil | [ ] |
-| Botão "Usar mods ativos" (P:190) → `SelectActiveMods` (P:280) | botão | local (`desiredSavePath = ""`) | Perfil | [ ] |
-| `allowSaveVersions` CheckBox "Aceitar versão instalada compatível" (P:156) | checkbox | `settings.save_allow_versions` e `load.allow_versions` | Perfil | [ ] |
-| Expander "Caminhos do Factorio" (P:192) | seção | local | Perfil | [ ] |
-| `exe` TextBox Executável do Factorio (P:152,191) | campo | `settings.factorio_exe`; `load.factorio_exe` | Perfil | [ ] |
-| `mods` TextBox Pasta de mods (P:152,191) | campo | `settings.mods_dir`; `load.mods_dir` | Perfil | [ ] |
-| `load` Botão "Carregar perfil de mods" (P:193) → `LoadMods` (P:305) | botão | `settings` {factorio_exe, mods_dir, save_path, save_allow_versions, ollama_url} e depois `load` {factorio_exe, mods_dir, save_path, allow_versions}; resposta passa por `ApplyStatus`; desabilitado enquanto `busy` | Perfil | [ ] |
-| `SaveSettings` (P:304), chamado em LoadMods, Generate e RefreshOllama(true) | ação | `settings` {factorio_exe, mods_dir, save_path, save_allow_versions, ollama_url} | Sistema (mesmos gatilhos) | [ ] |
-| `ApplyStatus` (P:255): preenche exe, mods, save, versões, ollama_url, catálogo (receitas, grupos), equipamentos | ação | resposta de `status`/`load`: `factorio_exe, mods_dir, save_path, save_allow_versions, ollama_url, profile.count, game_version, catalog.{recipes,groups}, equipment` | Sistema (alimenta Prod, Fábrica, Bal) | [ ] |
+| `profile` TextBlock "N mods ativos · save · Factorio X" (P:157,258) | rótulo | local (preenchido por `status`) | Status (e cabeçalho do menu Perfil) || [x] |
+| `saveChoices` ComboBox de mundos, 1º item "Mods ativos · mod-list.json" (P:153,220,290-303) | combo | local (guarda `desiredSavePath`); lista vem de `saves` | Perfil (submenu/diálogo de mundo) || [x] |
+| Botão "Atualizar mundos" (P:190) → `LoadSaveList` (P:285) | botão | `saves` (sem payload) → array `{path,name,modified,directory}` | Perfil || [x] |
+| Botão "Procurar…" (P:190) → `ChooseSave` (P:275), OpenFileDialog `*.zip` | botão | local (define `desiredSavePath`) | Perfil || [x] |
+| Botão "Usar mods ativos" (P:190) → `SelectActiveMods` (P:280) | botão | local (`desiredSavePath = ""`) | Perfil || [x] |
+| `allowSaveVersions` CheckBox "Aceitar versão instalada compatível" (P:156) | checkbox | `settings.save_allow_versions` e `load.allow_versions` | Perfil || [x] |
+| Expander "Caminhos do Factorio" (P:192) | seção | local | Perfil || [x] |
+| `exe` TextBox Executável do Factorio (P:152,191) | campo | `settings.factorio_exe`; `load.factorio_exe` | Perfil || [x] |
+| `mods` TextBox Pasta de mods (P:152,191) | campo | `settings.mods_dir`; `load.mods_dir` | Perfil || [x] |
+| `load` Botão "Carregar perfil de mods" (P:193) → `LoadMods` (P:305) | botão | `settings` {factorio_exe, mods_dir, save_path, save_allow_versions, ollama_url} e depois `load` {factorio_exe, mods_dir, save_path, allow_versions}; resposta passa por `ApplyStatus`; desabilitado enquanto `busy` | Perfil || [x] |
+| `SaveSettings` (P:304), chamado em LoadMods, Generate e RefreshOllama(true) | ação | `settings` {factorio_exe, mods_dir, save_path, save_allow_versions, ollama_url} | Sistema (mesmos gatilhos) || [x] |
+| `ApplyStatus` (P:255): preenche exe, mods, save, versões, ollama_url, catálogo (receitas, grupos), equipamentos | ação | resposta de `status`/`load`: `factorio_exe, mods_dir, save_path, save_allow_versions, ollama_url, profile.count, game_version, catalog.{recipes,groups}, equipment` | Sistema (alimenta Prod, Fábrica, Bal) || [x] |
 
 ## 2. Coluna Produtos (hoje seção "02 Produção")
 
 | Controle atual | Tipo | Comando + payload | Destino | Paridade |
 |---|---|---|---|---|
-| `itemGroupFilter` ComboBox de grupos com ícone, item "Todos os grupos" (P:154,194,262-270) | combo | local (filtra `catalog.recipes` por `item_group`) | Prod (abas de grupo) | [ ] |
-| `itemSubgroupFilter` ComboBox de subgrupos, "Todos os subgrupos" (P:155,194,353-364) | combo | local (`item_subgroup`, ordenado por `item_subgroup_order`) | Prod (filtro de subgrupo/linhas de grupo) | [ ] |
-| `search` TextBox "Buscar receita ou item" (P:152,194,217) | campo | local (filtra nome, label, grupo, subgrupo, produtos, ingredientes) | Prod (busca) | [ ] |
-| `catalogState` TextBlock "N receitas · refine a busca" (P:157,345) | rótulo | local (limite de 96 resultados) | Prod / Status | [ ] |
-| `recipes` WrapPanel de ícones de receita, máx. 96 (P:158,339-352), clique → `SelectRecipe` (P:365) | grade de slots | `machines` {recipe_name}; descarta resposta se a receita mudou; escolhe máquina preferida, depois `electric-furnace`, depois a primeira | Prod (slots de produto) | [ ] |
-| `products` WrapPanel "Saída desejada" (P:158,195,384-393) | grade de slots | local (`selectedProduct`; tooltip indica fluido e quantidade por ciclo) | Prod (variantes de receita/saída) | [ ] |
-| `rate` TextBox "Saída por minuto", padrão 60 (P:152,195) | campo | local → `target_per_min` em generate/fila; aceita vírgula | Prod (Meta com /min ou /s) | [ ] |
-| Seletor /min ou /s | novo | local (converte para /min antes do payload) | Prod | [ ] |
-| `machineBadge` ícone da máquina atual (F:14,263-269); clique abre a aba Equipamentos | botão | local | Prod (atalho) → aba Fábrica | [ ] |
-| Botão "Adicionar fábrica independente" (P:196) → `AddObjective` (P:403) | botão | local (limite 32; exige receita, saída, máquina e meta > 0; guarda cópia de `FactoryOptions()`) | Prod (ação "Adicionar à fila") | [ ] |
-| `selectedRecipe`, `selectedProduct`, `selectedMachine`, `preferredMachine` (P:167-169; F:46) | estado | local | Sistema | [ ] |
+| `itemGroupFilter` ComboBox de grupos com ícone, item "Todos os grupos" (P:154,194,262-270) | combo | local (filtra `catalog.recipes` por `item_group`) | Prod (abas de grupo) || [x] |
+| `itemSubgroupFilter` ComboBox de subgrupos, "Todos os subgrupos" (P:155,194,353-364) | combo | local (`item_subgroup`, ordenado por `item_subgroup_order`) | Prod (filtro de subgrupo/linhas de grupo) || [x] |
+| `search` TextBox "Buscar receita ou item" (P:152,194,217) | campo | local (filtra nome, label, grupo, subgrupo, produtos, ingredientes) | Prod (busca) || [x] |
+| `catalogState` TextBlock "N receitas · refine a busca" (P:157,345) | rótulo | local (limite de 96 resultados) | Prod / Status || [x] |
+| `recipes` WrapPanel de ícones de receita, máx. 96 (P:158,339-352), clique → `SelectRecipe` (P:365) | grade de slots | `machines` {recipe_name}; descarta resposta se a receita mudou; escolhe máquina preferida, depois `electric-furnace`, depois a primeira | Prod (slots de produto) || [x] |
+| `products` WrapPanel "Saída desejada" (P:158,195,384-393) | grade de slots | local (`selectedProduct`; tooltip indica fluido e quantidade por ciclo) | Prod (variantes de receita/saída) || [x] |
+| `rate` TextBox "Saída por minuto", padrão 60 (P:152,195) | campo | local → `target_per_min` em generate/fila; aceita vírgula | Prod (Meta com /min ou /s) || [x] |
+| Seletor /min ou /s | novo | local (converte para /min antes do payload) | Prod || [x] |
+| `machineBadge` ícone da máquina atual (F:14,263-269); clique abre a aba Equipamentos | botão | local | Prod (atalho) → aba Fábrica || [x] |
+| Botão "Adicionar fábrica independente" (P:196) → `AddObjective` (P:403) | botão | local (limite 32; exige receita, saída, máquina e meta > 0; guarda cópia de `FactoryOptions()`) | Prod (ação "Adicionar à fila") || [x] |
+| `selectedRecipe`, `selectedProduct`, `selectedMachine`, `preferredMachine` (P:167-169; F:46) | estado | local | Sistema || [x] |
 
 ## 3. Aba Fábrica (hoje "Equipamentos" e "Layout"; F:56-158)
 
@@ -80,9 +80,9 @@ Destinos: **Arq** / **Perfil** / **Gerar** / **Exp** / **Ajuda** (menus), **Prod
 
 | Controle atual | Tipo | Comando + payload | Destino | Paridade |
 |---|---|---|---|---|
-| Botão "Salvar configuração…" (F:125) → `SaveFactoryProfile` (F:368); SaveFileDialog `*.json`, nome `<produto>-<preset>.json`; exige receita | botão | local; grava `FactoryProfile()` {version:1, recipe_name, product_name, machine_name, target_per_min, factory (sem as chaves de equipamento), ai_instructions, ai_timeout, ai_fallback, model} | Arq (Salvar configuração) | [ ] |
-| Botão "Abrir configuração…" (F:126) → `OpenFactoryProfile` (F:374); ignora se `busy` | botão | local → `ApplyFactoryProfile` (F:380): restaura todos os campos da aba Fábrica, receita, produto, meta, IA | Arq (Abrir configuração) | [ ] |
-| Sair (não existe hoje) | novo | local (`Close`) | Arq | [ ] |
+| Botão "Salvar configuração…" (F:125) → `SaveFactoryProfile` (F:368); SaveFileDialog `*.json`, nome `<produto>-<preset>.json`; exige receita | botão | local; grava `FactoryProfile()` {version:1, recipe_name, product_name, machine_name, target_per_min, factory (sem as chaves de equipamento), ai_instructions, ai_timeout, ai_fallback, model} | Arq (Salvar configuração) || [x] |
+| Botão "Abrir configuração…" (F:126) → `OpenFactoryProfile` (F:374); ignora se `busy` | botão | local → `ApplyFactoryProfile` (F:380): restaura todos os campos da aba Fábrica, receita, produto, meta, IA | Arq (Abrir configuração) || [x] |
+| Sair (não existe hoje) | novo | local (`Close`) | Arq || [x] |
 | `.runtime/last-factory.json`: leitura em `Initialize` (P:240-249) e gravação em `SaveLastFactory` (F:363), chamado em `GenerateView` e `Closed`; só grava se há receita | persistência | local; restaura com `restoreEquipment: !hasEquipmentProfile` e, se não havia perfil de equipamento, grava um | Sistema | [ ] |
 | `.runtime/equipment-profile.json`: leitura `LoadEquipmentProfile` (F:341) em `Initialize`, gravação pelo botão "Salvar equipamento padrão" | persistência | local {version, equipment, preferred_machine} | Sistema | [ ] |
 | `.runtime/bus-config.json`: `LoadBusConfig` (B:81) ao construir a aba, `SaveBusConfig` (B:98) a cada alteração e em GenerateBus | persistência | local {belt, items[{name,max_belts}]}; erro de leitura limpa a lista; erro de escrita é ignorado | Sistema | [ ] |
@@ -95,10 +95,10 @@ Destinos: **Arq** / **Perfil** / **Gerar** / **Exp** / **Ajuda** (menus), **Prod
 |---|---|---|---|---|
 | `generate` Botão "✳ Gerar blueprint(s)" accent, desabilitado até haver receita e máquina (P:163,203,426) → `Generate` | botão | **Fila vazia**: `generate` {recipe_name, product_name, target_per_min, machine_name, model, factory, ai_timeout (15-600, padrão 120), ai_instructions, ai_fallback}. **Fila com itens**: `generate_batch` {objectives[{recipe_name, product_name, target_per_min, machine_name, factory, model, ai_timeout, ai_instructions, ai_fallback}], book_label "ForgePlan · N fábricas"}. Ambos recebem `_cancel_file` do Backend. Chama `SaveSettings` antes | Gerar (Fábrica única / Fila) e botão verde na aba | [ ] |
 | Resultado de `generate_batch` (P:443-452): usa o 1º resultado ok para a prévia, `shared_graphics`/`shared_icons`, limpa a fila | fluxo | consome `results[]`, `success_count`, `failure_count`, `blueprint_book_string` | Prévia/Resumo/Fila | [ ] |
-| Botão "Gerar cadeia conjunta · Blueprint Book" (P:424) → `GenerateIntegrated` (P:463); só com fila | botão | `generate_integrated` {targets[{recipe_name, product_name, target_per_min, machine_name, factory}], factory, book_label "ForgePlan · cadeia conjunta"} | Gerar (cadeia conjunta) / Fila | [ ] |
+| Botão "Gerar cadeia conjunta · Blueprint Book" (P:424) → `GenerateIntegrated` (P:463); só com fila | botão | `generate_integrated` {targets[{recipe_name, product_name, target_per_min, machine_name, factory}], factory, book_label "ForgePlan · cadeia conjunta"} | Gerar (cadeia conjunta) / Fila || [x] |
 | Botão "Gerar módulos da cadeia em Blueprint Book" (P:690) → `GenerateDependencyBook` (P:539); exige resultado, 2-32 etapas | botão (no Resumo) | `generate_batch` {objectives[{recipe_name=step.recipe, product_name=step.product, target_per_min=step.output_per_min, machine_name:"", factory, model, ai_timeout, ai_instructions, ai_fallback}], book_label "ForgePlan · cadeia de <produto>"} | Resumo (botão) e Gerar | [ ] |
-| Botão "Gerar fábrica com barramento" accent (B:38) → `GenerateBus` (B:115) | botão | `generate_bus` {targets[{name,per_min}], machines{recipe→máquina}, preferred{produto→receita}, bus{belt, items[{name,max_belts}]}}; exige fila; não usa cancelamento | Barr (botão) e Gerar | [ ] |
-| Botão "Gerar blueprint do balanceador" (F:146) → `GenerateBalancer` (P:508) | botão | `generate_balancer` {topology, belt, splitter, length (2-64), required_flow (≥0), belt_safety_margin, material_mode:"single_material", input_priority, output_priority}; cancelável | Bal (botão) e Gerar | [ ] |
+| Botão "Gerar fábrica com barramento" accent (B:38) → `GenerateBus` (B:115) | botão | `generate_bus` {targets[{name,per_min}], machines{recipe→máquina}, preferred{produto→receita}, bus{belt, items[{name,max_belts}]}}; exige fila; não usa cancelamento | Barr (botão) e Gerar || [x] |
+| Botão "Gerar blueprint do balanceador" (F:146) → `GenerateBalancer` (P:508) | botão | `generate_balancer` {topology, belt, splitter, length (2-64), required_flow (≥0), belt_safety_margin, material_mode:"single_material", input_priority, output_priority}; cancelável | Bal (botão) e Gerar || [x] |
 | `cancelGeneration` Botão "Cancelar geração" (P:204) | botão | local (`CancellationTokenSource.Cancel`); Backend grava o arquivo `.cancel` e reinicia o motor | Status (botão Cancelar) / Gerar | [ ] |
 | `progress` ProgressBar indeterminada (F:38) | barra | local (visível se `busy`) | Status | [ ] |
 | `generationTimer` 1 s: "estágio · mm:ss" (F:48-49,156) com `generationWatch`, `generationStage` | timer | local | Status | [ ] |
@@ -202,24 +202,24 @@ Métodos públicos usados por `MainWindow`: `GamePreview()`, `Stop()`, `Clear()`
 
 | Controle atual | Tipo | Comando | Destino | Paridade |
 |---|---|---|---|---|
-| `preview` dentro do Border (P:162,211) | controle | local | Prévia | [ ] |
-| Botão "−" → `preview.ChangeZoom(-.2)` (P:209) | botão | local | Prévia | [ ] |
-| Botão "+" → `preview.ChangeZoom(.2)` (P:209) | botão | local | Prévia | [ ] |
-| Botão "Ajustar" → `preview.Fit()` (P:209) | botão | local | Prévia | [ ] |
-| `previewTitle` título com ícone do produto + taxa/blocos (P:157,210,617) e subtítulo "SPRITES DO JOGO / 2.5D" | rótulo | local | Prévia | [ ] |
-| `preview.Clear()` em geração em lote sem resultado (P:442,490,560) | chamada | local | Prévia | [ ] |
-| `preview.SetResult(result)` + `Fit()` no balanceador (P:530) | chamada | local | Prévia | [ ] |
-| `preview.Stop()` em `Closed` (P:223) | chamada | local | Sistema | [ ] |
+| `preview` dentro do Border (P:162,211) | controle | local | Prévia || [x] |
+| Botão "−" → `preview.ChangeZoom(-.2)` (P:209) | botão | local | Prévia || [x] |
+| Botão "+" → `preview.ChangeZoom(.2)` (P:209) | botão | local | Prévia || [x] |
+| Botão "Ajustar" → `preview.Fit()` (P:209) | botão | local | Prévia || [x] |
+| `previewTitle` título com ícone do produto + taxa/blocos (P:157,210,617) e subtítulo "SPRITES DO JOGO / 2.5D" | rótulo | local | Prévia || [x] |
+| `preview.Clear()` em geração em lote sem resultado (P:442,490,560) | chamada | local | Prévia || [x] |
+| `preview.SetResult(result)` + `Fit()` no balanceador (P:530) | chamada | local | Prévia || [x] |
+| `preview.Stop()` em `Closed` (P:223) | chamada | local | Sistema || [x] |
 
 ## 12. Menu Exportar
 
 | Controle atual | Tipo | Comando + payload | Destino | Paridade |
 |---|---|---|---|---|
-| Botão "Salvar prévia PNG" (P:213) → `SavePreview` (P:804); exige `result`; SaveFileDialog `<produto>-previa.png` | botão | local → `preview.SavePng(path)` | Exp (PNG) | [ ] |
-| Botão "Copiar blueprint" (P:213) | botão | local: `Clipboard.SetText(result.blueprint_string)`; status "Blueprint copiado." | Exp | [ ] |
-| Botão "Copiar livro" (P:213) | botão | local: `batchResult.blueprint_book_string`, senão `result.blueprint_book_string`; status "Livro de blueprints copiado." | Exp | [ ] |
-| Botão "Exportar livro" (P:213) → `ExportBook` (P:797); `ForgePlan-modular.txt` ou `ForgePlan-book.txt` | botão | local (UTF-8 sem BOM) | Exp | [ ] |
-| Botão "Exportar .txt" (P:213) → `Export` (P:790); `<produto>-blueprint.txt` ou `-modular-book.txt` | botão | local (grava `result.blueprint_string`, UTF-8 sem BOM) | Exp (TXT) | [ ] |
+| Botão "Salvar prévia PNG" (P:213) → `SavePreview` (P:804); exige `result`; SaveFileDialog `<produto>-previa.png` | botão | local → `preview.SavePng(path)` | Exp (PNG) || [x] |
+| Botão "Copiar blueprint" (P:213) | botão | local: `Clipboard.SetText(result.blueprint_string)`; status "Blueprint copiado." | Exp || [x] |
+| Botão "Copiar livro" (P:213) | botão | local: `batchResult.blueprint_book_string`, senão `result.blueprint_book_string`; status "Livro de blueprints copiado." | Exp || [x] |
+| Botão "Exportar livro" (P:213) → `ExportBook` (P:797); `ForgePlan-modular.txt` ou `ForgePlan-book.txt` | botão | local (UTF-8 sem BOM) | Exp || [x] |
+| Botão "Exportar .txt" (P:213) → `Export` (P:790); `<produto>-blueprint.txt` ou `-modular-book.txt` | botão | local (grava `result.blueprint_string`, UTF-8 sem BOM) | Exp (TXT) || [x] |
 | Copiar blueprint da fábrica com barramento | botão | ver §8 | Exp | [ ] |
 | Copiar corpo de expansão, livro entrada+expansão, alternativa física | botões | ver §10 | Exp | [ ] |
 
@@ -227,19 +227,19 @@ Métodos públicos usados por `MainWindow`: `GamePreview()`, `Stop()`, `Clear()`
 
 | Controle | Tipo | Comando | Destino | Paridade |
 |---|---|---|---|---|
-| Limitações e relatórios de `docs/project` | novo | local (abrir arquivo/pasta) | Ajuda | [ ] |
+| Limitações e relatórios de `docs/project` | novo | local (abrir arquivo/pasta) | Ajuda || [x] |
 | Sobre / versão | novo | local | Ajuda | [ ] |
 
 ## 14. Barra de status, cabeçalho, janela e ciclo de vida
 
 | Elemento atual | Tipo | Comando | Destino | Paridade |
 |---|---|---|---|---|
-| `status` TextBlock no rodapé (P:157,216), alterado em dezenas de pontos | rótulo | local | Status | [ ] |
-| Cabeçalho "FORGEPLAN / FACTORIO BLUEPRINT STUDIO" e "WINDOWS · LOCAL" (P:179-181) | rótulo | local | Barra de título/menu | [ ] |
-| Título da janela "ForgePlan · Factorio Blueprint Studio", 1640×1040, mín. 1220×800, centralizada (P:174-175) | janela | local | Sistema | [ ] |
-| `Loaded` → `Initialize` (P:221,232): busy, `status`, `LoadEquipmentProfile`, `saves`, `RefreshOllama(false)`, restaura `last-factory.json`, inicia `ollamaTimer`; mensagem final "Perfil pronto…" | evento | `status`, `saves`, `ollama` | Sistema | [ ] |
-| `Closed` (P:223): `SaveLastFactory` (ignora IOException), para `ollamaTimer` e `generationTimer`, cancela geração, `preview.Stop()`, `backend.Dispose()` | evento | local | Sistema | [ ] |
-| `search.TextChanged`, `itemGroupFilter.SelectionChanged`, `itemSubgroupFilter.SelectionChanged`, `saveChoices.SelectionChanged` (P:217-220) | eventos | local | Prod / Perfil | [ ] |
+| `status` TextBlock no rodapé (P:157,216), alterado em dezenas de pontos | rótulo | local | Status || [x] |
+| Cabeçalho "FORGEPLAN / FACTORIO BLUEPRINT STUDIO" e "WINDOWS · LOCAL" (P:179-181) | rótulo | local | Barra de título/menu || [x] |
+| Título da janela "ForgePlan · Factorio Blueprint Studio", 1640×1040, mín. 1220×800, centralizada (P:174-175) | janela | local | Sistema || [x] |
+| `Loaded` → `Initialize` (P:221,232): busy, `status`, `LoadEquipmentProfile`, `saves`, `RefreshOllama(false)`, restaura `last-factory.json`, inicia `ollamaTimer`; mensagem final "Perfil pronto…" | evento | `status`, `saves`, `ollama` | Sistema || [x] |
+| `Closed` (P:223): `SaveLastFactory` (ignora IOException), para `ollamaTimer` e `generationTimer`, cancela geração, `preview.Stop()`, `backend.Dispose()` | evento | local | Sistema || [x] |
+| `search.TextChanged`, `itemGroupFilter.SelectionChanged`, `itemSubgroupFilter.SelectionChanged`, `saveChoices.SelectionChanged` (P:217-220) | eventos | local | Prod / Perfil || [x] |
 | `logisticsMode.SelectionChanged` → RenderEquipment (F:71) | evento | local | Fábrica | [ ] |
 | `fitSelectedArea.Checked` (F:95) | evento | local | Fábrica | [ ] |
 | `modulesAuto.Checked/Unchecked` (F:238-239) | evento | local | Fábrica | [ ] |
