@@ -1,0 +1,9 @@
+{
+  "name": "forgeplan-harness",
+  "version": "0.1.0",
+  "title": "ForgePlan Harness",
+  "author": "ForgePlan",
+  "factorio_version": "2.1",
+  "dependencies": ["base >= 2.1.0"],
+  "description": "Builds a blueprint on a throwaway map and records measured production for ForgePlan calibration."
+}
