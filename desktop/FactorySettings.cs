@@ -10,22 +10,21 @@ namespace ForgePlan;
 
 sealed partial class MainWindow
 {
-    readonly TabControl settingsTabs = new() { Background = UI.Panel, Foreground = System.Windows.Media.Brushes.WhiteSmoke, BorderBrush = UI.Line };
     readonly StackPanel equipmentPanel = new(), modulesPanel = new(), machineBadge = new(), aiPanel = new();
-    readonly ListBox logisticsMode = new() { Background = UI.Brush("#101813"), Foreground = System.Windows.Media.Brushes.WhiteSmoke, BorderBrush = UI.Line };
-    readonly ListBox rotationChoice = new() { Background = UI.Brush("#101813"), BorderBrush = UI.Line };
-    readonly ListBox arrangementChoice = new() { Background = UI.Brush("#101813"), BorderBrush = UI.Line };
-    readonly ListBox beltStrategyChoice = new() { Background = UI.Brush("#101813"), BorderBrush = UI.Line };
-    readonly ComboBox optimizationProfileChoice = new() { Background = UI.Brush("#101813"), Foreground = System.Windows.Media.Brushes.WhiteSmoke, BorderBrush = UI.Line, Margin = new Thickness(0, 4, 0, 8) };
-    readonly ComboBox balancerTopologyChoice = new() { Background = UI.Brush("#101813"), Foreground = System.Windows.Media.Brushes.WhiteSmoke, BorderBrush = UI.Line, Margin = new Thickness(0, 4, 0, 8) };
-    readonly ComboBox balancerBeltChoice = new() { Background = UI.Brush("#101813"), Foreground = System.Windows.Media.Brushes.WhiteSmoke, BorderBrush = UI.Line, Margin = new Thickness(0, 4, 0, 8) };
-    readonly ComboBox balancerSplitterChoice = new() { Background = UI.Brush("#101813"), Foreground = System.Windows.Media.Brushes.WhiteSmoke, BorderBrush = UI.Line, Margin = new Thickness(0, 4, 0, 8) };
-    readonly ComboBox balancerInputPriority = new() { Background = UI.Brush("#101813"), Foreground = System.Windows.Media.Brushes.WhiteSmoke, BorderBrush = UI.Line, Margin = new Thickness(0, 4, 0, 8) };
-    readonly ComboBox balancerOutputPriority = new() { Background = UI.Brush("#101813"), Foreground = System.Windows.Media.Brushes.WhiteSmoke, BorderBrush = UI.Line, Margin = new Thickness(0, 4, 0, 8) };
+    readonly ListBox logisticsMode = new();
+    readonly ListBox rotationChoice = new();
+    readonly ListBox arrangementChoice = new();
+    readonly ListBox beltStrategyChoice = new();
+    readonly ComboBox optimizationProfileChoice = new() { Margin = new Thickness(0, 4, 0, 8) };
+    readonly ComboBox balancerTopologyChoice = new() { Margin = new Thickness(0, 4, 0, 8) };
+    readonly ComboBox balancerBeltChoice = new() { Margin = new Thickness(0, 4, 0, 8) };
+    readonly ComboBox balancerSplitterChoice = new() { Margin = new Thickness(0, 4, 0, 8) };
+    readonly ComboBox balancerInputPriority = new() { Margin = new Thickness(0, 4, 0, 8) };
+    readonly ComboBox balancerOutputPriority = new() { Margin = new Thickness(0, 4, 0, 8) };
     readonly TextBox balancerLengthBox = UI.Input("4"), balancerFlowBox = UI.Input("0");
     readonly TextBox cityBlockSizeBox = UI.Input("100"), moduleSizeBox = UI.Input("6"), customAreaWeightBox = UI.Input("1"), customBeltWeightBox = UI.Input("2"), customPowerWeightBox = UI.Input("4");
     readonly TextBox targetAreaWidthBox = UI.Input("0"), targetAreaHeightBox = UI.Input("0");
-    readonly CheckBox fitSelectedArea = new() { Content = "Limitar o blueprint a esta área", IsChecked = false, Foreground = UI.Muted, Margin = new Thickness(0, 6, 0, 6) };
+    readonly CheckBox fitSelectedArea = new() { Content = "Limitar o blueprint a esta área", IsChecked = false, Margin = new Thickness(0, 6, 0, 6) };
     readonly TextBlock gameAreaStatus = UI.Text("Nenhuma área importada do jogo.", 10, UI.Muted);
     int? targetAreaLeft, targetAreaTop;
     string targetAreaSurface = "";
@@ -33,7 +32,7 @@ sealed partial class MainWindow
     readonly TextBox columnsBox = UI.Input("0"), gapBox = UI.Input("1"), aisleBox = UI.Input("3"), bufferBox = UI.Input("60"), slotsBox = UI.Input("8"), timeoutBox = UI.Input("120"), inserterBonusBox = UI.Input("0"), bulkBonusBox = UI.Input("0"), beltMarginBox = UI.Input("8"), maxEntitiesBox = UI.Input("0"), maxAreaBox = UI.Input("0");
     readonly TextBox aiInstructions = new() { AcceptsReturn = true, Height = 58, Padding = new Thickness(7), TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Margin = new Thickness(0, 4, 0, 8) };
     readonly CheckBox allowFallback = new() { Content = "Usar perfil configurado se a IA falhar", IsChecked = true, Foreground = UI.Muted, Margin = new Thickness(0, 8, 0, 8) };
-    readonly CheckBox modulesAuto = new() { Content = "Escolher módulos automaticamente para aumentar a produção", IsChecked = true, Foreground = UI.Muted, Margin = new Thickness(0, 6, 0, 6) };
+    readonly CheckBox modulesAuto = new() { Content = "Escolher módulos automaticamente para aumentar a produção", IsChecked = true, Margin = new Thickness(0, 6, 0, 6) };
     readonly Dictionary<string, int> selectedModules = new();
     readonly ProgressBar progress = new() { Height = 3, IsIndeterminate = true, Visibility = Visibility.Collapsed, Foreground = UI.Lime, Margin = new Thickness(0, 3, 0, 3) };
     readonly TextBlock presetLabel = UI.Text("Equilibrado", 12, UI.Lime);
@@ -53,77 +52,9 @@ sealed partial class MainWindow
     static double DecimalValue(TextBox box, double fallback) => double.TryParse(box.Text.Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var n) ? Math.Clamp(n, 0, 100) : fallback;
     static ListBoxItem Choice(string label, object key) => new() { Content = label, Tag = key, Padding = new Thickness(8) };
 
-    UIElement BuildFactoryTabs()
+    // Aba Balanceador (Task 7 reestiliza; aqui só foi separada da antiga construção das abas).
+    UIElement BuildBalancerPanel()
     {
-        var equipment = new StackPanel { Margin = new Thickness(12) }; equipment.Children.Add(UI.Text("Equipamentos da fábrica", 19));
-        UI.Label(equipment, "Máquina compatível com a receita"); equipment.Children.Add(machines); equipment.Children.Add(equipmentPanel); equipment.Children.Add(modulesPanel);
-        var layout = new StackPanel { Margin = new Thickness(12) }; layout.Children.Add(UI.Text("Perfis de equipamento", 19)); layout.Children.Add(presetLabel);
-        var presets = new WrapPanel();
-        foreach (var entry in new[] { ("starter", "Início de jogo", "Esteira amarela, inseridor simples e poste pequeno."), ("balanced", "Equilibrado", "Esteira rápida, inseridores rápidos e postes médios."), ("throughput", "Produção em escala", "Esteira expressa, inseridores de lote e subestações."), ("mall", "Mall com robôs", "Baús solicitadores e provedores; usa uma rede logística existente."), ("integration", "Integração manual", "Máquinas e energia para conectar à sua fábrica existente.") })
-        {
-            var key = entry.Item1;
-            var button = UI.Button(entry.Item2, (_, _) => { if (!busy) ApplyPreset(key); }); button.Width = 136; button.Height = 42; button.Margin = new Thickness(2); button.ToolTip = entry.Item3; presets.Children.Add(button);
-        }
-        layout.Children.Add(presets); UI.Section(layout, "Logística");
-        logisticsMode.Items.Add(Choice("Esteiras compartilhadas · até 4 insumos", "belts"));
-        logisticsMode.Items.Add(Choice("Robôs · rede logística existente", "robots"));
-        logisticsMode.Items.Add(Choice("Somente máquinas e energia", "machines")); logisticsMode.SelectedIndex = 0;
-        logisticsMode.SelectionChanged += (_, _) => RenderEquipment(); layout.Children.Add(logisticsMode);
-        UI.Label(layout, "Perfil de otimização");
-        foreach (var entry in new[] {
-            ("Compacto", "compact", "Prioriza área menor e logística curta."),
-            ("Equilibrado", "balanced", "Equilibra área, esteiras, postes e quantidade de linhas."),
-            ("Throughput máximo", "max_throughput", "Prefere linhas longas e menos divisões; mantém a meta de itens/min informada."),
-            ("Eficiência de recursos", "resource_efficient", "Reduz esteiras, postes e relés sem exceder capacidade."),
-            ("Metalurgia · referência da biblioteca", "metallurgy", "Usa padrões das BPs salvas de fornalhas/foundries; limita layouts automáticos a 4,75:1 e minimiza a rede de fluido."),
-            ("Megabase · linhas repetíveis", "megabase", "Mantém um número-alvo de máquinas por linha repetível."),
-            ("City block · limitar dimensões", "city_block", "Exige que largura e altura caibam no limite; no Factorio 2.x, define snap absoluto."),
-            ("Personalizado · pesos abaixo", "custom", "Aplica os pesos editáveis para área, esteiras e postes.") })
-            optimizationProfileChoice.Items.Add(new ComboBoxItem { Content = entry.Item1, Tag = entry.Item2, ToolTip = entry.Item3 });
-        optimizationProfileChoice.SelectedIndex = 1; layout.Children.Add(optimizationProfileChoice);
-        layout.Children.Add(UI.Text("O perfil muda a geometria, não a meta de produção solicitada.", 10, UI.Muted));
-        UI.Label(layout, "Subprodutos externos · IDs separados por vírgula"); layout.Children.Add(excludedSubproductsBox);
-        layout.Children.Add(UI.Text("Padrão: iron-plate e copper-plate. Esses itens entram como insumos externos e não geram blocos de produção. Saídas secundárias que uma receita produzir continuam no blueprint.", 10, UI.Muted));
-        UI.Label(layout, "Limite por lado · City block (tiles)"); layout.Children.Add(cityBlockSizeBox);
-        UI.Label(layout, "Máquinas por linha modular · Megabase"); layout.Children.Add(moduleSizeBox);
-        UI.Section(layout, "Área selecionada no Factorio");
-        layout.Children.Add(UI.Text("Instale/ative o mod ForgePlan Area Bridge. No jogo, use o atalho ForgePlan, arraste sobre o terreno e importe a última seleção.", 10, UI.Muted));
-        var areaActions = new WrapPanel();
-        areaActions.Children.Add(UI.Button("Importar área do jogo", async (_, _) => await ImportGameArea()));
-        areaActions.Children.Add(UI.Button("Limpar área", (_, _) => ClearGameArea()));
-        layout.Children.Add(areaActions); layout.Children.Add(gameAreaStatus);
-        fitSelectedArea.Checked += (_, _) => { if (targetAreaWidthBox.Text == "0") targetAreaWidthBox.Text = ""; if (targetAreaHeightBox.Text == "0") targetAreaHeightBox.Text = ""; };
-        layout.Children.Add(fitSelectedArea);
-        var areaSize = new StackPanel { Orientation = Orientation.Horizontal };
-        areaSize.Children.Add(UI.Text("Largura (tiles)", 10, UI.Muted)); targetAreaWidthBox.Width = 78; areaSize.Children.Add(targetAreaWidthBox);
-        areaSize.Children.Add(UI.Text("Altura (tiles)", 10, UI.Muted)); targetAreaHeightBox.Width = 78; areaSize.Children.Add(targetAreaHeightBox);
-        layout.Children.Add(areaSize);
-        layout.Children.Add(UI.Text("O gerador rejeita qualquer resultado que ultrapasse a largura ou altura e ajusta a grade de encaixe do blueprint.", 10, UI.Muted));
-        UI.Label(layout, "Pesos CUSTOM · área / esteiras / postes");
-        var customWeights = new StackPanel { Orientation = Orientation.Horizontal };
-        customWeights.Children.Add(customAreaWeightBox); customWeights.Children.Add(customBeltWeightBox); customWeights.Children.Add(customPowerWeightBox); layout.Children.Add(customWeights);
-        layout.Children.Add(UI.Text("City block limita as dimensões do blueprint; vias, trilhos, roboportos e interfaces de bloco ainda não são gerados. Megabase organiza linhas repetíveis dentro de um blueprint.", 10, UI.Muted));
-        UI.Label(layout, "Geometria");
-        arrangementChoice.Items.Add(Choice("Automática · seguir perfil", "auto")); arrangementChoice.Items.Add(Choice("Compacto", "compact")); arrangementChoice.Items.Add(Choice("Linhas modulares", "rows")); arrangementChoice.Items.Add(Choice("Linha única", "single_row")); arrangementChoice.SelectedIndex = 0; layout.Children.Add(arrangementChoice);
-        UI.Label(layout, "Distribuição dos insumos nas esteiras");
-        beltStrategyChoice.Items.Add(Choice("Automático · combinar ou dividir pela capacidade", "auto")); beltStrategyChoice.Items.Add(Choice("Faixa dupla · um material por faixa", "dual_lane")); beltStrategyChoice.Items.Add(Choice("Faixa dedicada · uma esteira por material", "single_material")); beltStrategyChoice.Items.Add(Choice("Multiesteira · dividir em até duas esteiras", "multi_belt")); beltStrategyChoice.SelectedIndex = 0; layout.Children.Add(beltStrategyChoice);
-        UI.Label(layout, "Máquinas por linha · 0 = escolher automaticamente"); layout.Children.Add(columnsBox);
-        UI.Label(layout, "Limite de entidades · 0 = sem limite"); layout.Children.Add(maxEntitiesBox);
-        UI.Label(layout, "Área máxima em tiles² · 0 = sem limite"); layout.Children.Add(maxAreaBox);
-        UI.Label(layout, "Espaço lateral entre máquinas (tiles)"); layout.Children.Add(gapBox);
-        UI.Label(layout, "Corredor entre linhas (tiles)"); layout.Children.Add(aisleBox);
-        UI.Label(layout, "Direção do fluxo");
-        foreach (var entry in new[] { ("Oeste → Leste", 0), ("Norte → Sul", 1), ("Leste → Oeste", 2), ("Sul → Norte", 3) }) rotationChoice.Items.Add(Choice(entry.Item1, entry.Item2));
-        rotationChoice.SelectedIndex = 0; layout.Children.Add(rotationChoice);
-        UI.Label(layout, "Robôs: estoque solicitado por máquina (segundos)"); layout.Children.Add(bufferBox);
-        UI.Label(layout, "Robôs: slots de saída por baú"); layout.Children.Add(slotsBox);
-        UI.Label(layout, "Bônus de pesquisa de inseridor (normal / lote)"); layout.Children.Add(inserterBonusBox); UI.Label(layout, "Bônus adicional de lote"); layout.Children.Add(bulkBonusBox);
-        UI.Label(layout, "Margem de segurança da esteira (%)"); layout.Children.Add(beltMarginBox);
-        layout.Children.Add(UI.Text("AUTO divide demandas acima da capacidade útil em até duas esteiras paralelas e combina materiais leves nas duas faixas. Multiesteira força uma linha dedicada por material; entradas que exijam mais de duas linhas precisam de um tier mais rápido ou logística por robôs. O plano valida também a vazão dos inseridores.", 11, UI.Muted));
-        layout.Children.Add(UI.Text("Módulos compatíveis são instalados nas máquinas. Fluidos usam as portas reais e coletores de canos separados.", 11, UI.Muted));
-        layout.Children.Add(UI.Text("Os equipamentos escolhidos ficam salvos à parte dos presets e são reutilizados em todas as receitas compatíveis.", 10, UI.Muted));
-        layout.Children.Add(UI.Button("Salvar configuração…", (_, _) => SaveFactoryProfile()));
-        layout.Children.Add(UI.Button("Abrir configuração…", async (_, _) => await OpenFactoryProfile()));
         var balancers = new StackPanel { Margin = new Thickness(12) };
         balancers.Children.Add(UI.Text("Balanceadores de esteiras", 19));
         UI.Label(balancers, "Topologia exata");
@@ -144,17 +75,7 @@ sealed partial class MainWindow
         UI.Label(balancers, "Fluxo requerido · 0 = não especificado"); balancers.Children.Add(balancerFlowBox);
         balancers.Children.Add(UI.Text("Este módulo transporta um único material em todas as faixas. Não é balanceador throughput-unlimited nem é inserido automaticamente na fábrica. Teste no Factorio antes de conectar à linha.", 11, UI.Muted));
         balancers.Children.Add(UI.Button("Gerar blueprint do balanceador", async (_, _) => await GenerateBalancer()));
-        settingsTabs.Items.Add(new TabItem { Header = "Equipamentos", Content = UI.Scroll(equipment) });
-        settingsTabs.Items.Add(new TabItem { Header = "Layout", Content = UI.Scroll(layout) });
-        aiPanel.Margin = new Thickness(12);
-        settingsTabs.Items.Add(new TabItem { Header = "IA", Content = UI.Scroll(aiPanel) });
-        var report = new StackPanel { Margin = new Thickness(12) }; report.Children.Add(UI.Text("Resumo da linha", 19)); report.Children.Add(summary);
-        settingsTabs.Items.Add(new TabItem { Header = "Resumo", Content = UI.Scroll(report) });
-        settingsTabs.Items.Add(new TabItem { Header = "Balanceadores", Content = UI.Scroll(balancers) });
-        settingsTabs.Items.Add(new TabItem { Header = "Barramento", Content = UI.Scroll(BuildBusPanel()) });
-        settingsTabs.SelectedIndex = 1;
-        generationTimer.Tick += (_, _) => status.Text = generationStage + " · " + generationWatch.Elapsed.ToString(@"mm\:ss");
-        return settingsTabs;
+        return balancers;
     }
 
     void RenderBalancerChoices()
@@ -193,80 +114,6 @@ sealed partial class MainWindow
         RenderMachines(); RenderEquipment(); RenderMachineBadge();
     }
 
-    void RenderEquipment()
-    {
-        equipmentPanel.Children.Clear();
-        var groups = new List<(string Key, string Label)>
-        {
-            ("belt", "Esteira"), ("input_inserter", "Inseridor de entrada"), ("output_inserter", "Inseridor de saída"),
-            ("long_inserter", "Braço longo"), ("pole", "Poste de energia"), ("requester", "Baú solicitador"),
-            ("provider", "Baú provedor"), ("pipe", "Cano"), ("pipe_to_ground", "Cano subterrâneo"), ("fuel", "Combustível")
-        };
-        var categories = J.A(machineData.FirstOrDefault(m => J.S(m, "name") == selectedMachine), "fuel_categories").Select(n => n!.ToString()).ToList();
-        foreach (var group in groups)
-        {
-            UI.Section(equipmentPanel, group.Label);
-            var items = J.A(equipmentData, group.Key).Where(i => group.Key != "fuel" || categories.Count == 0 || J.A(i, "fuel_categories").Any(c => categories.Contains(c!.ToString()))).ToList();
-            if (items.Count == 0) { equipmentPanel.Children.Add(UI.Text("Nenhum equipamento compatível no perfil.", 11, UI.Muted)); continue; }
-            var selected = equipmentSelection.GetValueOrDefault(group.Key, "");
-            if (!items.Any(i => J.S(i, "name") == selected))
-            {
-                selected = group.Key == "fuel" ? items.FirstOrDefault(i => J.S(i, "name") is "coal" or "nutrients")?["name"]?.ToString() ?? J.S(items[0], "name") : J.S(items[0], "name");
-                equipmentSelection[group.Key] = selected;
-            }
-            var panel = new WrapPanel();
-            foreach (var item in items)
-            {
-                var key = group.Key; var name = J.S(item, "name");
-                panel.Children.Add(IconChoice(J.S(item, "icon"), name, selected == name, (_, _) => { equipmentSelection[key] = name; RenderEquipment(); }, J.S(item, "details", name)));
-            }
-            equipmentPanel.Children.Add(panel);
-        }
-        RenderModules();
-        UI.Section(equipmentPanel, "Equipamentos para todos os layouts");
-        equipmentPanel.Children.Add(UI.Text("Os presets não substituem esta seleção. A máquina preferida será usada quando a receita permitir; caso contrário, o ForgePlan escolhe uma compatível. Salve para reutilizar nas próximas sessões.", 11, UI.Muted));
-        equipmentPanel.Children.Add(UI.Button("Salvar equipamento padrão", (_, _) => SaveEquipmentProfile()));
-    }
-
-    void RenderModules()
-    {
-        modulesPanel.Children.Clear();
-        var machine = machineData.FirstOrDefault(m => J.S(m, "name") == selectedMachine);
-        var slots = (int)J.N(machine, "module_slots");
-        if (slots <= 0) return;
-        UI.Section(modulesPanel, $"Módulos · {slots} slots"); modulesPanel.Children.Add(modulesAuto);
-        modulesAuto.Checked -= ModulesAutoChanged; modulesAuto.Unchecked -= ModulesAutoChanged;
-        modulesAuto.Checked += ModulesAutoChanged; modulesAuto.Unchecked += ModulesAutoChanged;
-        var compatible = J.A(machine, "compatible_modules").Select(n => n?.ToString() ?? "").ToHashSet(StringComparer.Ordinal);
-        foreach (var name in selectedModules.Keys.Where(n => !compatible.Contains(n)).ToArray()) selectedModules.Remove(name);
-        var remainingSlots = slots;
-        foreach (var name in selectedModules.Keys.ToArray()) { selectedModules[name] = Math.Min(selectedModules[name], remainingSlots); remainingSlots -= selectedModules[name]; if (selectedModules[name] <= 0) selectedModules.Remove(name); }
-        var items = J.A(equipmentData, "modules").Where(i => compatible.Contains(J.S(i, "name"))).ToList();
-        var panel = new WrapPanel();
-        foreach (var item in items)
-        {
-            var name = J.S(item, "name"); var count = selectedModules.GetValueOrDefault(name);
-            panel.Children.Add(IconChoice(J.S(item, "icon"), name, count > 0, (_, _) =>
-            {
-                var total = selectedModules.Values.Sum(); var current = selectedModules.GetValueOrDefault(name);
-                selectedModules[name] = current >= slots || total >= slots ? 0 : current + 1;
-                if (selectedModules[name] == 0) selectedModules.Remove(name);
-                modulesAuto.IsChecked = false; RenderModules();
-            }, J.S(item, "details") + $"\nInstalados: {count}/{slots} · clique para ajustar"));
-        }
-        modulesPanel.Children.Add(panel);
-        modulesPanel.Children.Add(UI.Text(modulesAuto.IsChecked == true ? "O plano escolherá os módulos compatíveis." : "Selecionados: " + string.Join(", ", selectedModules.Select(p => p.Key + " × " + p.Value)), 11, UI.Muted));
-    }
-
-    void ModulesAutoChanged(object? sender, RoutedEventArgs e) => RenderModules();
-
-    void RenderMachineBadge()
-    {
-        machineBadge.Children.Clear(); if (selectedMachine == "") return;
-        var machine = machineData.FirstOrDefault(m => J.S(m, "name") == selectedMachine);
-        var button = IconChoice(J.S(machine, "icon"), selectedMachine, true, (_, _) => settingsTabs.SelectedIndex = 0, J.Label(selectedMachine) + "\nConfigurar equipamentos");
-        machineBadge.Children.Add(button);
-    }
 
     async Task ImportGameArea()
     {

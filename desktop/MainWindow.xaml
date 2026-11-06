@@ -129,7 +129,7 @@
           <StackPanel Grid.Row="4" Margin="0,8,0,0">
             <TextBlock Text="Meta de produção" FontSize="12" Margin="0,0,0,3"/>
             <DockPanel>
-              <ComboBox x:Name="rateUnit" DockPanel.Dock="Right" Width="80" Margin="6,0,0,0" SelectedIndex="0" VerticalContentAlignment="Center" Foreground="#1B1A1B">
+              <ComboBox x:Name="rateUnit" DockPanel.Dock="Right" Width="80" Margin="6,0,0,0" SelectedIndex="0" VerticalContentAlignment="Center">
                 <ComboBoxItem Content="/min" Tag="min"/>
                 <ComboBoxItem Content="/s" Tag="s"/>
               </ComboBox>
@@ -137,7 +137,7 @@
             </DockPanel>
           </StackPanel>
           <StackPanel Grid.Row="5" Margin="0,8,0,0">
-            <TextBlock Text="Máquina · configure na aba Equipamentos" FontSize="11" Opacity="0.75"/>
+            <TextBlock Text="Máquina · configure na aba Fábrica" FontSize="11" Opacity="0.75"/>
             <ContentControl x:Name="machineBadgeHost" Margin="0,2,0,4"/>
             <Button Content="Adicionar fábrica independente" Style="{StaticResource FactorioButton}" Click="AddObjective_Click"/>
           </StackPanel>
@@ -166,15 +166,23 @@
         </ContentControl>
       </Grid>
 
-      <!-- Coluna direita (temporária: abas atuais) -->
+      <!-- Coluna direita: abas (Fábrica, Barramento, Fila, Resumo, Balanceador, IA) e geração -->
       <ContentControl Grid.Column="2" Style="{StaticResource FactorioPanel}" Margin="4" Padding="2">
         <Grid>
           <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
           </Grid.RowDefinitions>
-          <ContentControl x:Name="factoryTabsHost" Grid.Row="0"/>
-          <StackPanel x:Name="generatePanel" Grid.Row="1" Margin="10,4,10,6"/>
+          <TabControl x:Name="settingsTabs" Grid.Row="0" Padding="0"
+                      Background="{StaticResource FactorioPanelBrush}" BorderBrush="{StaticResource FactorioBorderDarkBrush}">
+            <TabItem x:Name="factoryTab" Header="Fábrica" Style="{StaticResource FactorioTab}" Padding="9,5"/>
+            <TabItem x:Name="busTab" Header="Barramento" Style="{StaticResource FactorioTab}" Padding="9,5"/>
+            <TabItem x:Name="queueTab" Header="Fila" Style="{StaticResource FactorioTab}" Padding="9,5"/>
+            <TabItem x:Name="summaryTab" Header="Resumo" Style="{StaticResource FactorioTab}" Padding="9,5"/>
+            <TabItem x:Name="balancerTab" Header="Balanceador" Style="{StaticResource FactorioTab}" Padding="9,5"/>
+            <TabItem x:Name="aiTab" Header="IA" Style="{StaticResource FactorioTab}" Padding="9,5"/>
+          </TabControl>
+          <StackPanel x:Name="generatePanel" Grid.Row="1" Margin="6,6,6,4"/>
         </Grid>
       </ContentControl>
     </Grid>

@@ -123,6 +123,119 @@
     </Setter>
   </Style>
 
+  <!-- Campos de texto: fundo rebaixado escuro, texto claro -->
+  <Style TargetType="TextBox">
+    <Setter Property="Background" Value="{StaticResource FactorioInsetBrush}"/>
+    <Setter Property="Foreground" Value="{StaticResource FactorioTextBrush}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource FactorioBorderDarkBrush}"/>
+    <Setter Property="CaretBrush" Value="{StaticResource FactorioTextBrush}"/>
+    <Setter Property="SelectionBrush" Value="{StaticResource FactorioSelectionBrush}"/>
+  </Style>
+
+  <!-- ComboBox legivel: caixa escura com texto claro e lista no painel do jogo -->
+  <Style TargetType="ComboBoxItem">
+    <Setter Property="Foreground" Value="{StaticResource FactorioTextBrush}"/>
+    <Setter Property="Padding" Value="8,5"/>
+    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBoxItem">
+          <Border x:Name="item" Background="Transparent" Padding="{TemplateBinding Padding}">
+            <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="item" Property="Background" Value="{StaticResource FactorioBorderLightBrush}"/></Trigger>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="item" Property="Background" Value="{StaticResource FactorioSelectionBrush}"/>
+              <Setter Property="Foreground" Value="#1B1A1B"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style TargetType="ComboBox">
+    <Setter Property="Foreground" Value="{StaticResource FactorioTextBrush}"/>
+    <Setter Property="Background" Value="{StaticResource FactorioInsetBrush}"/>
+    <Setter Property="Padding" Value="7,5,26,5"/>
+    <Setter Property="MinHeight" Value="26"/>
+    <Setter Property="SnapsToDevicePixels" Value="True"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBox">
+          <Grid>
+            <ToggleButton Focusable="False" ClickMode="Press"
+                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+              <ToggleButton.Template>
+                <ControlTemplate TargetType="ToggleButton">
+                  <Grid Background="Transparent">
+                    <Border Background="{StaticResource FactorioBorderLightBrush}"/>
+                    <Border Background="{StaticResource FactorioBorderDarkBrush}" Margin="0,0,1,1"/>
+                    <Border Background="{StaticResource FactorioInsetBrush}" Margin="1"/>
+                    <Path HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,9,0" Data="M0,0 L5,5 L10,0 Z" Fill="{StaticResource FactorioTextBrush}"/>
+                    <Border x:Name="hover" BorderBrush="{StaticResource FactorioSelectionBrush}" BorderThickness="1" Visibility="Collapsed"/>
+                  </Grid>
+                  <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="hover" Property="Visibility" Value="Visible"/></Trigger>
+                  </ControlTemplate.Triggers>
+                </ControlTemplate>
+              </ToggleButton.Template>
+            </ToggleButton>
+            <ContentPresenter IsHitTestVisible="False" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" HorizontalAlignment="Left"
+                              Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                              TextElement.Foreground="{TemplateBinding Foreground}"/>
+            <Popup x:Name="PART_Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+              <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                      Background="{StaticResource FactorioPanelBrush}" BorderBrush="{StaticResource FactorioBorderDarkBrush}" BorderThickness="2">
+                <ScrollViewer SnapsToDevicePixels="True">
+                  <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                </ScrollViewer>
+              </Border>
+            </Popup>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Lista de escolha unica (logistica, geometria, direcao...) -->
+  <Style x:Key="FactorioListItem" TargetType="ListBoxItem">
+    <Setter Property="Foreground" Value="{StaticResource FactorioTextBrush}"/>
+    <Setter Property="Padding" Value="8,5"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ListBoxItem">
+          <Border x:Name="item" Background="Transparent" Padding="{TemplateBinding Padding}">
+            <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="item" Property="Background" Value="{StaticResource FactorioPanelBrush}"/></Trigger>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="item" Property="Background" Value="{StaticResource FactorioSelectionBrush}"/>
+              <Setter Property="Foreground" Value="#1B1A1B"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="FactorioList" TargetType="ListBox">
+    <Setter Property="Background" Value="{StaticResource FactorioInsetBrush}"/>
+    <Setter Property="Foreground" Value="{StaticResource FactorioTextBrush}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource FactorioBorderDarkBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="ItemContainerStyle" Value="{StaticResource FactorioListItem}"/>
+    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+  </Style>
+
   <!-- Slot 40x40; BorderBrush e o contorno de selecao (transparente por padrao) -->
   <Style x:Key="FactorioSlot" TargetType="Button">
     <Setter Property="Width" Value="40"/>

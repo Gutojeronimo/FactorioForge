@@ -2,7 +2,6 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 
 namespace ForgePlan;
 
@@ -59,12 +58,9 @@ public class SlotGrid : WrapPanel
         try
         {
             if (!File.Exists(path)) return null;
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.UriSource = new Uri(Path.GetFullPath(path));
-            bitmap.EndInit();
-            bitmap.Freeze();
+            // Art.LoadIcon recorta a faixa de mipmaps (ex.: 120x64) para o quadrado do icone e guarda em cache.
+            var bitmap = Art.LoadIcon(Path.GetFullPath(path));
+            if (bitmap is null) return null;
             return new Image { Source = bitmap, Width = 32, Height = 32, Stretch = Stretch.Uniform };
         }
         catch

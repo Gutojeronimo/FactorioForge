@@ -150,10 +150,9 @@ sealed partial class MainWindow : Window
     sealed record QueuedObjective(string Recipe, string Product, string Machine, double Rate, JsonObject Factory);
     readonly Backend backend;
     readonly TextBox exe = UI.Input(), mods = UI.Input(), ollamaUrl = UI.Input("http://127.0.0.1:11434");
-    readonly ComboBox saveChoices = new() { Background = UI.Brush("#101813"), Foreground = Brushes.WhiteSmoke, BorderBrush = UI.Line, Margin = new Thickness(0, 4, 0, 5), MaxDropDownHeight = 260 };
+    readonly ComboBox saveChoices = new() { Margin = new Thickness(0, 4, 0, 5), MaxDropDownHeight = 260 };
     readonly CheckBox allowSaveVersions = new() { Content = "Aceitar versão instalada compatível (mesma versão principal/secundária)", Foreground = UI.Muted, Margin = new Thickness(0, 4, 0, 8) };
     readonly TextBlock ollamaState = UI.Text("Verificando Ollama…", 11, UI.Muted);
-    readonly WrapPanel machines = new();
     readonly StackPanel objectiveQueue = new();
     readonly StackPanel summary = new();
     readonly ListBox models = new() { MaxHeight = 72, Background = UI.Brush("#101813"), Foreground = Brushes.WhiteSmoke, BorderBrush = UI.Line };
@@ -173,18 +172,17 @@ sealed partial class MainWindow : Window
         backend = new Backend(root);
         rootFolder = root;
         previewFrame.Child = preview;
-        factoryTabsHost.Content = BuildFactoryTabs();
+        InitializeFactoryTabs();
         machineBadgeHost.Content = machineBadge;
         aiPanel.Children.Add(UI.Text("Assistente de layout", 19)); UI.Label(aiPanel, "Endereço Ollama"); aiPanel.Children.Add(ollamaUrl); aiPanel.Children.Add(UI.Button("Atualizar modelos", async (_, _) => await RefreshOllama(true)));
         UI.Label(aiPanel, "Tempo máximo para sugestão (segundos)"); aiPanel.Children.Add(timeoutBox); aiPanel.Children.Add(allowFallback);
         UI.Label(aiPanel, "Preferências para a IA (opcional)"); aiInstructions.Height = 100; aiPanel.Children.Add(aiInstructions);
         aiPanel.Children.Add(UI.Text("A IA sugere a disposição dentro do perfil escolhido. Use 0 em máquinas por linha para permitir essa escolha; os equipamentos e parâmetros manuais são respeitados.", 12, UI.Muted));
-        generatePanel.Children.Add(UI.Scroll(objectiveQueue, 150));
         generatePanel.Children.Add(UI.Text("IA LOCAL", 10, UI.Lime)); generatePanel.Children.Add(ollamaState); generatePanel.Children.Add(models);
-        generate = UI.Button("✳  Gerar blueprint(s)", async (_, _) => await Generate(), true); generate.IsEnabled = false; generatePanel.Children.Add(generate);
-        cancelGeneration = UI.Button("Cancelar geração", (_, _) => generationCancellation?.Cancel()); cancelGeneration.IsEnabled = false; generatePanel.Children.Add(cancelGeneration); generatePanel.Children.Add(progress);
+        generate = GameUI.Button("Gerar blueprint(s)", async (_, _) => await Generate(), "FactorioButtonGreen"); generate.IsEnabled = false;
+        cancelGeneration = GameUI.Button("Cancelar", (_, _) => generationCancellation?.Cancel(), "FactorioButtonRed"); cancelGeneration.IsEnabled = false;
+        BuildGeneratePanel();
         load = UI.Button("Carregar perfil de mods", async (_, _) => await LoadMods());
-        summary.Children.Add(UI.Text("Selecione uma receita e gere a prévia.", 12, UI.Muted));
         InitializeProducts();
         saveChoices.SelectionChanged += (_, _) => { if (saveChoices.SelectedItem is ComboBoxItem item) desiredSavePath = item.Tag?.ToString() ?? ""; };
         Loaded += async (_, _) => await Initialize();
@@ -293,14 +291,9 @@ sealed partial class MainWindow : Window
         catch (Exception e) { ollamaState.Text = "Falha ao consultar Ollama"; ollamaState.ToolTip = e.Message; }
         finally { refreshingOllama = false; }
     }
-    Button IconChoice(string path, string name, bool selected, RoutedEventHandler click, string? tooltip = null)
-    {
-        var button = new Button { Content = Art.Icon(path, name), Width = 45, Height = 45, Padding = new Thickness(5), Margin = new Thickness(2), BorderBrush = selected ? UI.Lime : UI.Line, BorderThickness = new Thickness(selected ? 2 : 1), ToolTip = tooltip ?? J.Label(name) + "\n" + name };
-        System.Windows.Automation.AutomationProperties.SetName(button, name); button.Click += (sender, e) => { if (!busy) click(sender, e); }; return button;
-    }
     async Task SelectRecipe(JsonNode recipe, string? product = null)
     {
-        selectedRecipe = recipe; selectedMachine = ""; selectedProduct = ""; generate.IsEnabled = false; machines.Children.Clear();
+        selectedRecipe = recipe; selectedMachine = ""; selectedProduct = ""; generate.IsEnabled = false; machines.SetItems(Array.Empty<SlotItem>());
         var outputs = J.A(recipe, "products").ToList();
         selectedProduct = product != null && outputs.Any(p => J.S(p, "name") == product) ? product
             : outputs.FirstOrDefault(p => J.S(p, "type") == "item")?["name"]?.ToString() ?? outputs.FirstOrDefault()?["name"]?.ToString() ?? "";
@@ -311,22 +304,14 @@ sealed partial class MainWindow : Window
             var data = await backend.Send("machines", new JsonObject { ["recipe_name"] = recipeName });
             if (recipeName != J.S(selectedRecipe, "name")) return;
             machineData = data as JsonArray ?? new JsonArray();
-            selectedMachine = machineData.FirstOrDefault(m => J.S(m, "name") == preferredMachine)?["name"]?.ToString()
-                ?? machineData.FirstOrDefault(m => J.S(m, "name") == "electric-furnace")?["name"]?.ToString()
-                ?? machineData.FirstOrDefault()?["name"]?.ToString() ?? "";
+            var usable = machineData.Where(MachineSupported).ToList();
+            selectedMachine = usable.FirstOrDefault(m => J.S(m, "name") == preferredMachine)?["name"]?.ToString()
+                ?? usable.FirstOrDefault(m => J.S(m, "name") == "electric-furnace")?["name"]?.ToString()
+                ?? usable.FirstOrDefault()?["name"]?.ToString() ?? "";
             RenderMachines(); RenderEquipment(); RenderMachineBadge(); generate.IsEnabled = !busy && selectedMachine != "";
             status.Text = selectedMachine != "" ? "Receita selecionada · " + J.N(recipe, "energy_required") + " s por ciclo" : "Nenhuma máquina compatível com esta receita.";
         }
         catch (Exception e) { Error(e); }
-    }
-    void RenderMachines()
-    {
-        machines.Children.Clear();
-        foreach (var machine in machineData)
-        {
-            var name = J.S(machine, "name");
-            machines.Children.Add(IconChoice(J.S(machine, "icon"), name, selectedMachine == name, (_, _) => { selectedMachine = name; preferredMachine = name; RenderMachines(); RenderEquipment(); RenderMachineBadge(); }, J.Label(name) + "\nVelocidade " + J.N(machine, "speed") + "\nPreferida para receitas compatíveis"));
-        }
     }
     void AddObjective()
     {
@@ -335,21 +320,6 @@ sealed partial class MainWindow : Window
         if (!TryTargetPerMinute(out var target)) { status.Text = "Informe uma meta positiva por minuto."; return; }
         queuedObjectives.Add(new QueuedObjective(J.S(selectedRecipe, "name"), selectedProduct, selectedMachine, target, (JsonObject)FactoryOptions().DeepClone()));
         batchResult = null; RenderObjectiveQueue(); status.Text = "Fábrica adicionada. Cada item será planejado separadamente.";
-    }
-    void RenderObjectiveQueue()
-    {
-        objectiveQueue.Children.Clear();
-        if (queuedObjectives.Count == 0) return;
-        UI.Label(objectiveQueue, "Fábricas independentes · " + queuedObjectives.Count);
-        for (var index = 0; index < queuedObjectives.Count; index++)
-        {
-            var captured = index; var objective = queuedObjectives[index];
-            var row = new DockPanel { Margin = new Thickness(0, 2, 0, 2) };
-            var remove = UI.Button("×", (_, _) => { queuedObjectives.RemoveAt(captured); RenderObjectiveQueue(); }); DockPanel.SetDock(remove, Dock.Right); row.Children.Add(remove);
-            row.Children.Add(UI.Text(J.Label(objective.Product) + " · " + objective.Rate.ToString("0.#") + "/min", 11, UI.Muted)); objectiveQueue.Children.Add(row);
-        }
-        objectiveQueue.Children.Add(UI.Button("Limpar lista", (_, _) => { queuedObjectives.Clear(); batchResult = null; RenderObjectiveQueue(); }));
-        objectiveQueue.Children.Add(UI.Button("Gerar cadeia conjunta · Blueprint Book", async (_, _) => await GenerateIntegrated()));
     }
     async Task Generate()
     {
@@ -370,7 +340,7 @@ sealed partial class MainWindow : Window
                 result = null; batchResult = null; preview.Clear();
                 batchResult = await backend.Send("generate_batch", new JsonObject { ["objectives"] = objectives, ["book_label"] = "ForgePlan · " + objectives.Count + " fábricas" }, generationCancellation.Token);
                 var first = J.A(batchResult, "results").FirstOrDefault(x => J.B(x, "ok"));
-                if (first == null) { summary.Children.Clear(); RenderBatchResults(); status.Text = "Nenhuma fábrica foi gerada. Consulte os erros individuais."; return; }
+                if (first == null) { summary.Children.Clear(); RenderBatchResults(); settingsTabs.SelectedItem = queueTab; status.Text = "Nenhuma fábrica foi gerada. Consulte os erros individuais."; return; }
                 result = first["result"] is JsonNode firstFactory ? BatchPreview(firstFactory) : null; if (result == null) throw new InvalidDataException("A geração retornou sucesso sem prévia.");
                 selectedRecipe = recipeData.FirstOrDefault(r => J.S(r, "name") == J.S(first, "recipe_name"))?.DeepClone();
                 selectedProduct = J.S(result["plan"], "product_name"); selectedMachine = J.S(result["plan"], "machine_name");
@@ -457,7 +427,7 @@ sealed partial class MainWindow : Window
             if (result == null) return;
             batchResult = null; preview.SetResult(result); preview.Fit(); RenderBalancerSummary(result);
             previewTitle.Text = "Balanceador · " + topology.Replace("splitter-", "").Replace('-', '→');
-            settingsTabs.SelectedIndex = 3;
+            settingsTabs.SelectedItem = summaryTab;
             status.Text = J.A(result, "entities").Count + " entidades · blueprint do balanceador gerado; teste a distribuição no Factorio.";
         }
         catch (OperationCanceledException) { status.Text = "Geração cancelada."; }
@@ -485,7 +455,7 @@ sealed partial class MainWindow : Window
         {
             batchResult = await backend.Send("generate_batch", new JsonObject { ["objectives"] = objectives, ["book_label"] = "ForgePlan · cadeia de " + selectedProduct }, generationCancellation.Token);
             var first = J.A(batchResult, "results").FirstOrDefault(entry => J.B(entry, "ok"));
-            if (first == null) { result = null; preview.Clear(); summary.Children.Clear(); RenderBatchResults(); status.Text = "Nenhum módulo da cadeia foi gerado; veja os erros por etapa."; return; }
+            if (first == null) { result = null; preview.Clear(); summary.Children.Clear(); RenderBatchResults(); settingsTabs.SelectedItem = queueTab; status.Text = "Nenhum módulo da cadeia foi gerado; veja os erros por etapa."; return; }
             result = first["result"] is JsonNode firstResult ? BatchPreview(firstResult) : null;
             if (result == null) throw new InvalidDataException("A geração da cadeia retornou sucesso sem prévia.");
             selectedRecipe = recipeData.FirstOrDefault(recipe => J.S(recipe, "name") == J.S(first, "recipe_name"))?.DeepClone();
@@ -497,224 +467,15 @@ sealed partial class MainWindow : Window
         catch (Exception e) { Error(e); }
         finally { generationTimer.Stop(); generationWatch.Stop(); generationCancellation.Dispose(); generationCancellation = null; SetBusy(false, status.Text); }
     }
-    void RenderIntegratedPlan(JsonNode data)
-    {
-        var plan = data["plan"] ?? data;
-        summary.Children.Clear();
-        UI.Section(summary, "Metas finais");
-        foreach (var target in J.A(plan, "targets"))
-            summary.Children.Add(UI.Text(J.S(target, "name") + " · " + J.N(target, "per_min").ToString("0.#") + "/min", 12, UI.Muted));
-        UI.Section(summary, "Máquinas estimadas");
-        foreach (var step in J.A(plan, "recipe_totals"))
-            summary.Children.Add(UI.Text(J.S(step, "recipe") + " · " + J.S(step, "machine_name") + " × " + J.N(step, "machine_count").ToString("0") + " · " + J.N(step, "crafts_per_min").ToString("0.##") + " ciclos/min", 12, UI.Muted));
-        UI.Section(summary, "Coprodutos incluídos nas saídas");
-        var coproducts = J.A(plan, "coproducts");
-        if (coproducts.Count == 0) summary.Children.Add(UI.Text("Nenhum coproduto secundário.", 11, UI.Muted));
-        foreach (var item in coproducts)
-            summary.Children.Add(UI.Text(J.S(item, "name") + " · " + J.N(item, "per_min").ToString("0.##") + "/min", 11, UI.Muted));
-        UI.Section(summary, "Subprodutos tratados como externos");
-        var externalSubproducts = J.A(plan, "external_subproducts");
-        summary.Children.Add(UI.Text(externalSubproducts.Count == 0 ? "Nenhum." : string.Join(", ", externalSubproducts.Select(item => item?.ToString())), 11, UI.Muted));
-        foreach (var field in new[] { "raw_inputs", "fluid_inputs" })
-        {
-            UI.Section(summary, field == "raw_inputs" ? "Entradas externas · itens" : "Entradas externas · fluidos");
-            var rows = J.A(plan, field);
-            if (rows.Count == 0) summary.Children.Add(UI.Text("Nenhuma", 12, UI.Muted));
-            foreach (var row in rows)
-                summary.Children.Add(UI.Text(J.S(row, "name") + " · " + J.N(row, "per_min").ToString("0.##") + "/min", 12, UI.Muted));
-        }
-        UI.Section(summary, "Livro físico da cadeia");
-        summary.Children.Add(UI.Text(J.N(plan, "physical_blocks_generated").ToString("0") + "/" + J.N(plan, "physical_blocks_expected").ToString("0") + " blocos gerados e validados individualmente. Conecte as portas entre fábricas no jogo; o livro não inclui esteiras compartilhadas.", 12, UI.Muted));
-        foreach (var warning in J.A(plan, "warnings"))
-            summary.Children.Add(UI.Text("• " + warning?.ToString(), 11, UI.Muted));
-    }
-    void RenderBalancerSummary(JsonNode data)
-    {
-        var layout = data["layout"]; var topology = layout?["topology"];
-        summary.Children.Clear(); UI.Section(summary, "Topologia");
-        summary.Children.Add(UI.Text(J.S(topology, "key") + " · " + J.N(topology, "inputs") + " entradas → " + J.N(topology, "outputs") + " saídas", 15, UI.Lime));
-        summary.Children.Add(UI.Text("Capacidade estimada: " + J.N(topology, "capacity_per_min").ToString("0.#") + " itens/min · demanda " + J.N(layout, "required_flow_per_min").ToString("0.#") + "/min", 12, UI.Muted));
-        summary.Children.Add(UI.Text("Esteiras: " + J.N(layout, "belt_usable_capacity_per_min").ToString("0.#") + " itens/min úteis por faixa · " + J.N(layout, "entity_count") + " entidades", 12, UI.Muted));
-        foreach (var port in J.A(data["ports"], "inputs")) summary.Children.Add(UI.Text("Entrada · x=" + J.N(port, "x") + " y=" + J.N(port, "y"), 11, UI.Muted));
-        foreach (var port in J.A(data["ports"], "outputs")) summary.Children.Add(UI.Text("Saída · x=" + J.N(port, "x") + " y=" + J.N(port, "y"), 11, UI.Muted));
-        summary.Children.Add(UI.Text("Balanceamento 1:1 do splitter; todos os fluxos devem transportar o mesmo material. Sem validação de throughput-unlimited.", 11, UI.Muted));
-    }
     void GenerateView(JsonNode data, string product, string machine)
     {
-        preview.SetResult(data); RenderSummary(data); SaveLastFactory(); settingsTabs.SelectedIndex = 3;
+        preview.SetResult(data); RenderSummary(data); SaveLastFactory(); settingsTabs.SelectedItem = summaryTab;
         previewTitle.Inlines.Clear(); previewTitle.Inlines.Add(new System.Windows.Documents.InlineUIContainer(Art.Icon(J.S(data["icons"], product), product, 30))); previewTitle.Inlines.Add(J.N(data["layout"], "modular_block_count") > 1 ? "  Livro modular · " + J.N(data["layout"], "modular_block_count") + " blocos · prévia do primeiro" : "  " + J.N(data["plan"], "actual_per_min").ToString("0.#") + " itens/min");
         var fallback = (data["graphics"] as JsonObject)?.Count(p => J.B(p.Value, "fallback")) ?? 0;
         var logistics = J.S(data["layout"], "mode") switch { "robots" => "robôs logísticos", "machines" => "integração manual", _ => "esteiras compartilhadas" };
         status.Text = J.A(data, "entities").Count + " entidades na prévia · " + logistics + (J.N(data["layout"], "modular_block_count") > 1 ? " · " + J.N(data["layout"], "modular_block_count") + " blocos no Blueprint Book" : "") + (fallback > 0 ? " · " + fallback + " tipo(s) com ícone alternativo" : "") + (J.B(data["ai"], "used") ? " · IA local" : " · perfil configurado");
     }
-    void RenderBatchResults()
-    {
-        if (batchResult == null) return;
-        UI.Section(summary, "Resultado por fábrica");
-        foreach (var entry in J.A(batchResult, "results"))
-        {
-            if (!J.B(entry, "ok"))
-            {
-                summary.Children.Add(UI.Text("Falha · " + J.S(entry, "product_name") + " · " + J.S(entry, "error"), 11, UI.Brush("#E9BD7A")));
-                continue;
-            }
-            var factory = entry?["result"];
-            var name = J.S(entry, "product_name"); var target = J.N(entry, "target_per_min");
-            summary.Children.Add(UI.Button(J.Label(name) + " · " + target.ToString("0.#") + "/min · ver prévia", (_, _) =>
-            {
-                selectedRecipe = recipeData.FirstOrDefault(r => J.S(r, "name") == J.S(entry, "recipe_name"))?.DeepClone();
-                result = factory is JsonNode selectedFactory ? BatchPreview(selectedFactory) : null; selectedProduct = J.S(result?["plan"], "product_name"); selectedMachine = J.S(result?["plan"], "machine_name");
-                SyncProductSelection();
-                if (result != null) GenerateView(result, selectedProduct, selectedMachine); RenderBatchResults();
-            }));
-        }
-        summary.Children.Add(UI.Text("Copiar livro exporta apenas blueprints gerados com sucesso.", 10, UI.Muted));
-    }
-    JsonNode BatchPreview(JsonNode data)
-    {
-        var previewData = data.DeepClone() as JsonObject ?? new JsonObject();
-        previewData["graphics"] = batchResult?["shared_graphics"]?.DeepClone();
-        previewData["icons"] = batchResult?["shared_icons"]?.DeepClone();
-        return previewData;
-    }
-    void RenderSummary(JsonNode data)
-    {
-        summary.Children.Clear(); var plan = data["plan"];
-        UI.Section(summary, "Capacidade teórica"); summary.Children.Add(Art.Icon(J.S(data["icons"], selectedProduct), selectedProduct, 42)); summary.Children.Add(UI.Text(J.N(plan, "actual_per_min").ToString("0.#") + " / min", 31, UI.Lime));
-        summary.Children.Add(UI.Text("Meta: " + J.N(plan, "target_per_min").ToString("0.#") + " / min", 12, UI.Muted));
-        if (J.N(data["layout"], "modular_block_count") > 1) summary.Children.Add(UI.Text("Blueprint Book com " + J.N(data["layout"], "modular_block_count") + " blocos. A prévia mostra o primeiro; conecte as portas externas de cada bloco. Não inclui infraestrutura compartilhada ou trilhos.", 10, UI.Muted));
-        UI.Section(summary, "Máquinas"); var machineRow = new StackPanel { Orientation = Orientation.Horizontal }; machineRow.Children.Add(Art.Icon(J.S(data["icons"], selectedMachine), selectedMachine, 40)); machineRow.Children.Add(UI.Text("  × " + J.N(plan, "machine_count"), 26, UI.Lime)); summary.Children.Add(machineRow);
-        if (J.A(plan, "modules").Count > 0) summary.Children.Add(UI.Text("Módulos: " + string.Join(", ", J.A(plan, "modules").Select(m => m?.ToString())), 11, UI.Muted));
-        if (plan?["capacity_calculation"] != null)
-        {
-            UI.Section(summary, "Dimensionamento e gargalos");
-            foreach (var line in J.A(plan["capacity_calculation"], "summary")) summary.Children.Add(UI.Text(line?.ToString() ?? "", 11, UI.Muted));
-        }
-        UI.Section(summary, "Insumos por minuto");
-        foreach (var ingredient in J.A(plan, "ingredients"))
-        {
-            var name = J.S(ingredient, "name"); var row = new DockPanel { Margin = new Thickness(0, 5, 0, 5) }; row.Children.Add(Art.Icon(J.S(data["icons"], name), name, 33));
-            var amount = UI.Text(J.N(ingredient, "per_min").ToString("0.#") + (J.S(ingredient, "type") == "fluid" ? " u/min" : " /min"), 15); amount.HorizontalAlignment = HorizontalAlignment.Right; row.Children.Add(amount); summary.Children.Add(row);
-        }
-        UI.Section(summary, "Saídas incluídas no blueprint");
-        foreach (var output in J.A(plan, "products"))
-        {
-            var secondary = J.S(output, "name") != J.S(plan, "product_name");
-            var unit = J.S(output, "type") == "fluid" ? " u/min" : " /min";
-            summary.Children.Add(UI.Text((secondary ? "Coproduto · " : "Principal · ") + J.S(output, "name") + " · " + J.N(output, "per_min").ToString("0.#") + unit, 11, UI.Muted));
-        }
-        var dependencies = plan?["dependency_analysis"];
-        if (dependencies != null)
-        {
-            UI.Section(summary, "Cadeia teórica de insumos"); summary.Children.Add(UI.Text("Receitas padrão · sem módulos · ainda não gerada como bloco integrado", 10, UI.Muted));
-            foreach (var step in J.A(dependencies, "steps")) summary.Children.Add(UI.Text(J.S(step, "product") + " ← " + J.S(step, "recipe") + " · " + J.N(step, "crafts_per_min").ToString("0.#") + " ciclos/min", 11, UI.Muted));
-            foreach (var item in J.A(dependencies, "raw_inputs")) summary.Children.Add(UI.Text(J.S(item, "name") + " · " + J.N(item, "per_min").ToString("0.#") + " /min", 11, UI.Muted));
-            foreach (var item in J.A(dependencies, "fluid_inputs")) summary.Children.Add(UI.Text(J.S(item, "name") + " · " + J.N(item, "per_min").ToString("0.#") + " u/min", 11, UI.Muted));
-            foreach (var item in J.A(dependencies, "coproducts")) summary.Children.Add(UI.Text("Coproduto " + J.S(item, "name") + " · " + J.N(item, "per_min").ToString("0.#") + " /min", 11, UI.Muted));
-            foreach (var warning in J.A(dependencies, "warnings")) summary.Children.Add(UI.Text("⚠ " + warning?.ToString(), 10, UI.Brush("#E9BD7A")));
-            if (J.A(dependencies, "steps").Count > 1)
-            {
-                summary.Children.Add(UI.Text("Etapas serão blueprints separados no livro; os módulos ainda precisam ser conectados no jogo.", 10, UI.Muted));
-                summary.Children.Add(UI.Button("Gerar módulos da cadeia em Blueprint Book", async (_, _) => await GenerateDependencyBook()));
-            }
-        }
-        var blocks = J.N(data["layout"], "modular_block_count");
-        UI.Section(summary, "Layout");
-        if (data["expansion"] is JsonNode expansion && J.S(expansion, "repeat_body_blueprint_string") != "")
-        {
-            summary.Children.Add(UI.Text("Bloco espelhado com saída central. Repita o corpo a cada " + J.N(expansion, "pitch_tiles") + " tiles; alimentação e saída compartilham o limite de " + J.N(expansion, "shared_belt_capacity_per_min") + " itens/min por esteira.", 11, UI.Lime));
-            summary.Children.Add(UI.Button("Copiar corpo de expansão", (_, _) => { Clipboard.SetText(J.S(expansion, "repeat_body_blueprint_string")); status.Text = "Corpo repetível copiado. Alinhe as três esteiras com o bloco anterior."; }));
-            summary.Children.Add(UI.Button("Copiar livro: entrada + expansão", (_, _) => { Clipboard.SetText(J.S(expansion, "blueprint_book_string")); status.Text = "Livro de entrada e expansão copiado."; }));
-        }
-        summary.Children.Add(UI.Text(blocks > 1
-            ? "Megabase · " + blocks + " blocos · bloco " + J.N(data["layout"]?["single_block_dimensions"], "width") + "×" + J.N(data["layout"]?["single_block_dimensions"], "height") + " tiles · " + J.N(data["layout"], "entity_count") + " entidades e " + J.N(data["layout"], "factory_area") + " tiles² somados"
-            : J.S(data["layout"], "optimization_profile") + " · " + J.N(data["layout"], "factory_width") + "×" + J.N(data["layout"], "factory_height") + " tiles · " + J.N(data["layout"], "columns") + " colunas · " + J.N(data["layout"], "rows") + " linhas · " + J.N(data["layout"], "entity_count") + " entidades · " + J.N(data["layout"], "factory_area") + " tiles²", 12, UI.Muted));
-        if (J.N(data["layout"], "city_block_size") > 0) summary.Children.Add(UI.Text("City block: dimensão final dentro do limite de " + J.N(data["layout"], "city_block_size") + " tiles por lado" + (J.N(data["layout"], "grid_snap_size") > 0 ? " · snap absoluto " + J.N(data["layout"], "grid_snap_size") + "×" + J.N(data["layout"], "grid_snap_size") : "") + ".", 11, UI.Lime));
-        if (data["layout"]?["target_area"] is JsonNode targetArea)
-            summary.Children.Add(UI.Text("Dentro da área " + J.N(targetArea, "width") + "×" + J.N(targetArea, "height") + " tiles · layout gerado " + J.N(targetArea, "generated_width") + "×" + J.N(targetArea, "generated_height") + " · origem " + J.N(targetArea, "left") + "," + J.N(targetArea, "top") + (J.S(targetArea, "surface") == "" ? "" : " · " + J.S(targetArea, "surface")), 11, UI.Lime));
-        if (J.S(data["layout"], "training_profile") == "metallurgy")
-            summary.Children.Add(UI.Text("Perfil Metalurgia · padrões da biblioteca local aplicados; receitas e efeitos recalculados no perfil carregado.", 10, UI.Lime));
-        var candidatePool = J.A(data["layout"], "pareto_candidates");
-        if (candidatePool.Count == 0) candidatePool = J.A(data["layout"], "layout_candidates");
-        var candidateLayouts = candidatePool.OrderBy(c => J.N(c, "score")).Take(3).ToList();
-        var chosenLayout = J.A(data["layout"], "layout_candidates").FirstOrDefault(c => J.N(c, "columns") == J.N(data["layout"], "columns"));
-        if (chosenLayout != null && !candidateLayouts.Any(c => J.N(c, "columns") == J.N(chosenLayout, "columns"))) candidateLayouts.Add(chosenLayout);
-        foreach (var candidate in candidateLayouts)
-        {
-            var chosen = J.N(candidate, "columns") == J.N(data["layout"], "columns");
-            var blockFit = J.N(data["layout"], "city_block_size") == 0 || J.N(candidate, "block_overflow") == 0 ? "" : " · fora do City block";
-            summary.Children.Add(UI.Text((chosen ? "✓ " : "  ") + J.N(candidate, "columns") + "×" + J.N(candidate, "rows") + " · área " + J.N(candidate, "area") + " · esteiras " + J.N(candidate, "belt_tiles") + " · postes ~" + J.N(candidate, "estimated_poles") + " · vagas " + J.N(candidate, "unused_slots") + " · custo " + J.N(candidate, "score").ToString("0") + blockFit, 10, chosen ? UI.Lime : UI.Muted));
-        }
-        var connectors = J.A(data, "ports").Where(port => J.S(port, "type") is "item" or "fluid").ToList();
-        if (connectors.Count > 0)
-        {
-            UI.Section(summary, "Conectores e faixas");
-            foreach (var port in connectors)
-            {
-                var type = J.S(port, "type"); var lane = J.S(port, "lane");
-                var laneLabel = lane switch { "upper" => "faixa superior", "lower" => "faixa inferior", "both" => "esteira inteira", "shared" => "saída compartilhada", _ => "" };
-                var location = port?["belt_position"] is JsonNode beltPosition
-                    ? " · esteira x=" + J.N(beltPosition, "x") + " y=" + J.N(beltPosition, "y")
-                    : " · x=" + J.N(port, "x") + " y=" + J.N(port, "y");
-                summary.Children.Add(UI.Text(J.S(port, "kind") + " · " + J.Label(J.S(port, "name")) + " · " + J.N(port, "per_min").ToString("0.#") + (type == "fluid" ? " u/min" : "/min") + (laneLabel == "" ? "" : " · " + laneLabel) + location, 10, UI.Muted));
-            }
-        }
-        foreach (var warning in J.A(data, "warnings")) summary.Children.Add(new Border { Background = UI.Brush("#30271B"), Padding = new Thickness(9), Margin = new Thickness(0, 8, 0, 0), Child = UI.Text("⚠ " + warning?.ToString(), 11, UI.Brush("#E9BD7A")) });
-        summary.Children.Add(UI.Text(J.B(data["ai"], "used") ? "IA: " + J.S(data["ai"], "model") + " · " + J.N(data["ai"], "seconds") + " s\n" + J.S(data["ai"], "note") : "Perfil configurado: " + J.S(data["layout"], "preset"), 11, UI.Muted));
-        if (J.N(data["layout"], "belt_capacity_per_min") > 0)
-        {
-            summary.Children.Add(UI.Text("Esteira: " + J.N(data["layout"], "belt_capacity_per_min").ToString("0.#") + " itens/min total · útil " + J.N(data["layout"], "belt_usable_capacity_per_min").ToString("0.#") + " · margem " + (J.N(data["layout"], "belt_safety_margin") * 100).ToString("0.#") + "%", 11, UI.Muted));
-            foreach (var lane in J.A(data["layout"], "belt_lanes")) summary.Children.Add(UI.Text(J.S(lane, "material") + " · " + J.S(lane, "lane") + " · " + J.N(lane, "demand_per_min").ToString("0.#") + "/" + J.N(lane, "lane_capacity_per_min").ToString("0.#") + " itens/min · " + (J.N(lane, "utilization") * 100).ToString("0.#") + "%", 10, UI.Muted));
-        }
-        foreach (var inserter in J.A(data["layout"], "inserter_requirements"))
-        {
-            summary.Children.Add(UI.Text("Inseridor " + J.S(inserter, "direction") + " · " + J.S(inserter, "material") + " · " + J.N(inserter, "arms_per_machine") + " braço(s) · " + J.N(inserter, "demand_per_min").ToString("0.#") + "/" + J.N(inserter, "capacity_per_machine").ToString("0.#") + "/min · " + (J.N(inserter, "utilization") * 100).ToString("0.#") + "%", 10, UI.Muted));
-            foreach (var feed in J.A(inserter, "feeds"))
-                summary.Children.Add(UI.Text("  Esteira " + (J.N(feed, "belt_index") + 1) + " · " + J.S(feed, "inserter") + " × " + J.N(feed, "arms_per_machine") + " · " + J.N(feed, "demand_per_min").ToString("0.#") + "/" + J.N(feed, "capacity_per_machine").ToString("0.#") + "/min", 9, UI.Muted));
-        }
-        var temporal = data["layout"]?["temporal_analysis"];
-        if (temporal != null && J.S(temporal, "status") != "")
-        {
-            UI.Section(summary, "Simulação temporal offline");
-            var temporalStatus = J.S(temporal, "status", "INCONCLUSIVE");
-            var temporalBrush = temporalStatus == "STABLE" ? UI.Lime : temporalStatus is "STARVATION_SUSTAINED" or "OUTPUT_BLOCKED" ? UI.Brush("#E9BD7A") : UI.Muted;
-            summary.Children.Add(UI.Text(temporalStatus + " · " + J.N(temporal, "sustained_production_per_min").ToString("0.#") + "/min sustentados para meta de " + J.N(temporal, "target_per_min").ToString("0.#") + "/min · teórico " + J.N(temporal, "theoretical_production_per_min").ToString("0.#") + "/min", 11, temporalBrush));
-            summary.Children.Add(UI.Text("Medição " + J.N(temporal, "measurement_seconds").ToString("0.#") + " s após aquecimento de " + J.N(temporal, "warmup_seconds").ToString("0.#") + " s · viagem máxima " + J.N(temporal, "max_travel_seconds").ToString("0.#") + " s · utilização média " + (J.N(temporal, "mean_machine_utilization") * 100).ToString("0.#") + "% · última máquina " + (J.N(temporal, "last_machine_utilization") * 100).ToString("0.#") + "%", 10, UI.Muted));
-            summary.Children.Add(UI.Text("Starvation " + J.N(temporal, "starvation_machine_seconds").ToString("0.#") + " máquina·s · saída bloqueada " + J.N(temporal, "output_blocked_machine_seconds").ToString("0.#") + " máquina·s · conservação " + (J.B(temporal["conservation"], "valid") ? "OK" : "não confirmada"), 10, UI.Muted));
-            var recovery = temporal["recovery_after_interrupt_seconds"];
-            if (recovery != null) summary.Children.Add(UI.Text("Recuperação estimada após interrupção: " + J.N(temporal, "recovery_after_interrupt_seconds").ToString("0.#") + " s", 10, UI.Muted));
-            var bottlenecks = J.A(temporal, "machine_metrics").OrderBy(m => J.N(m, "utilization")).ThenByDescending(m => J.N(m, "waiting_ingredients_seconds")).Take(3).ToList();
-            foreach (var machine in bottlenecks)
-                summary.Children.Add(UI.Text("Gargalo · máquina " + J.N(machine, "id") + " · " + J.N(machine, "simulated_production_per_min").ToString("0.#") + "/min · uso " + (J.N(machine, "utilization") * 100).ToString("0.#") + "% · espera insumos " + J.N(machine, "waiting_ingredients_seconds").ToString("0.#") + " s · saída bloqueada " + J.N(machine, "output_blocked_seconds").ToString("0.#") + " s", 9, UI.Brush("#E9BD7A")));
-            foreach (var lane in J.A(temporal, "lane_metrics"))
-                summary.Children.Add(UI.Text("Faixa " + J.S(lane, "material") + " · fonte " + J.N(lane, "source_per_min").ToString("0.#") + "/min · demanda " + J.N(lane, "demand_per_min").ToString("0.#") + "/min · capacidade " + J.N(lane, "capacity_per_min").ToString("0.#") + "/min · restante " + J.N(lane, "remaining_items").ToString("0.#") + " itens", 9, UI.Muted));
-            foreach (var topology in J.A(data["layout"], "temporal_topology_comparison"))
-            {
-                var candidateRate = topology?["sustained_production_per_min"] == null ? "sem medição temporal" : J.N(topology, "sustained_production_per_min").ToString("0.#") + "/min";
-                summary.Children.Add(UI.Text("Topologia física " + J.S(topology, "topology") + " · " + J.S(topology, "status") + " · " + candidateRate + " · viagem " + J.N(topology, "max_travel_seconds").ToString("0.#") + " s · starvation " + J.N(topology, "starvation_machine_seconds").ToString("0.#") + " máquina·s", 9, UI.Muted));
-                var physicalMetrics = topology?["metrics"];
-                if (physicalMetrics != null)
-                    summary.Children.Add(UI.Text(J.N(physicalMetrics, "area").ToString("0") + " tiles² · " + J.N(physicalMetrics, "entity_count") + " entidades · " + J.N(physicalMetrics, "belt_length").ToString("0.#") + " tiles de esteira · score " + J.N(topology?["profile_score"], "total").ToString("0.#") + " · espera inicial " + J.N(topology, "warmup_starvation_machine_seconds").ToString("0.#") + " máquina·s", 9, UI.Muted));
-                var alternativeBlueprint = J.S(topology, "blueprint_string");
-                if (alternativeBlueprint != "" && J.B(topology, "physical_valid"))
-                    summary.Children.Add(UI.Button("Copiar alternativa " + J.S(topology, "topology"), (_, _) => { Clipboard.SetText(alternativeBlueprint); status.Text = "Alternativa física copiada; estimativa offline."; }));
-            }
-            var selectionReason = J.S(data["layout"], "temporal_selected_reason");
-            if (selectionReason != "") summary.Children.Add(UI.Text(selectionReason, 10, UI.Muted));
-            summary.Children.Add(UI.Text("Estimativa offline; não representa validação operacional dentro do Factorio." + (J.B(data["layout"], "temporal_search_complete") ? " Busca de candidatos concluída." : " Busca de candidatos parcial."), 9, UI.Muted));
-        }
-        UI.Section(summary, "Lista de materiais");
-        foreach (var material in J.A(data["layout"], "bill_of_materials"))
-        {
-            var row = new DockPanel { Margin = new Thickness(0, 3, 0, 3) }; var name = J.S(material, "name"); row.Children.Add(Art.Icon(J.S(data["icons"], name), name, 25)); row.Children.Add(UI.Text("  × " + J.N(material, "count"), 13)); summary.Children.Add(row);
-        }
-        var checks = data["layout"]?["checks"];
-        var qualityStatus = J.S(data["validation"], "status", "STRUCTURALLY_VALID");
-        var operationalStatus = J.S(data["validation"], "operational_status", "OPERATIONALLY_UNVERIFIED");
-        var validation = J.N(checks, "overlaps") == 0 && J.B(checks, "grid_aligned") && J.B(checks, "power_connected") ? "Sem sobreposições; grade e energia conferidas." : "Há verificações estruturais pendentes.";
-        summary.Children.Add(UI.Text("Qualidade: " + qualityStatus + " · " + operationalStatus + " · " + validation, 11, UI.Muted));
-    }
-    void Error(Exception e) { status.Text = e.Message; MessageBox.Show(this, e.Message, "ForgePlan", MessageBoxButton.OK, MessageBoxImage.Warning); }
+    void Error(Exception e) { status.Text = e.Message; GameDialog.Show(this, "ForgePlan", e.Message); }
     void Export()
     {
         if (result == null) return;
