@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101514">
+  <title>ForgePlan · Factorio Blueprint Studio</title>
+  <link rel="stylesheet" href="/web/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-lockup">
+        <div class="brand-mark"><span></span><span></span><span></span><span></span></div>
+        <div><div class="brand-name">FORGEPLAN</div><div class="brand-caption">FACTORIO BLUEPRINT STUDIO</div></div>
+      </div>
+      <div class="topbar-center"><span class="live-dot"></span><span id="connection-label">Conectando ao Factorio</span></div>
+      <div class="topbar-right">
+        <div class="version-pill" id="game-version">FACTORIO —</div>
+        <button class="icon-button" id="refresh-button" title="Atualizar estado" aria-label="Atualizar estado">↻</button>
+      </div>
+    </header>
+    <main class="workspace">
+      <aside class="sidebar left-sidebar">
+        <div class="sidebar-heading"><div><div class="eyebrow">WORKSPACE</div><h1>Nova fábrica</h1></div><span class="step-count">01 / 03</span></div>
+        <section class="panel-section">
+          <div class="section-heading"><div class="section-title"><span class="step-number">01</span><span>Perfil da partida</span></div><span class="section-state" id="profile-state">PENDENTE</span></div>
+          <label class="field-label" for="factorio-exe">Executável do Factorio</label>
+          <input class="path-input" id="factorio-exe" spellcheck="false" placeholder="C:\...\Factorio\factorio.exe">
+          <label class="field-label" for="mods-dir">Pasta de mods</label>
+          <input class="path-input" id="mods-dir" spellcheck="false" placeholder="%APPDATA%\Factorio\mods">
+          <div class="mod-summary"><div class="mod-count" id="mod-count">—</div><div><strong>mods habilitados</strong><span id="mod-fingerprint">Perfil ainda não carregado</span></div></div>
+          <div class="mod-chips" id="mod-chips"></div>
+          <button class="button button-secondary full-width" id="load-button"><span class="button-icon">▣</span><span id="load-button-label">Carregar protótipos</span><span class="button-arrow">→</span></button>
+          <p class="field-hint">O Factorio carrega o perfil e salva o catálogo em uma pasta isolada deste app.</p>
+        </section>
+        <section class="panel-section recipe-section">
+          <div class="section-heading"><div class="section-title"><span class="step-number">02</span><span>Meta de produção</span></div><span class="section-state" id="recipe-state">AGUARDANDO</span></div>
+          <label class="field-label" for="recipe-search">Receita / produto</label>
+          <input id="recipe-search" class="text-input" placeholder="Carregue os mods primeiro" disabled autocomplete="off">
+          <select id="recipe-select" class="select-input" disabled><option value="">Nenhuma receita carregada</option></select>
+          <div class="field-row">
+            <div class="field-grow"><label class="field-label" for="product-select">Saída desejada</label><select id="product-select" class="select-input" disabled><option>—</option></select></div>
+            <div class="rate-field"><label class="field-label" for="target-rate">Itens / min</label><div class="number-wrap"><input id="target-rate" type="number" min="0.1" step="1" value="60"><span>↗</span></div></div>
+          </div>
+          <label class="field-label" for="machine-select">Máquina compatível</label>
+          <select id="machine-select" class="select-input" disabled><option>Carregue uma receita</option></select>
+          <div class="machine-speed" id="machine-speed"><span class="speed-dot"></span><span>Velocidade base, sem módulos</span></div>
+        </section>
+        <section class="panel-section ai-section">
+          <div class="section-heading"><div class="section-title"><span class="step-number">03</span><span>Layout assistido</span></div><span class="ai-local-badge"><span class="live-dot"></span> LOCAL</span></div>
+          <label class="field-label" for="model-select">Modelo Ollama</label>
+          <select id="model-select" class="select-input"><option value="">Layout automático</option></select>
+          <div class="ai-status" id="ai-status"><span class="status-ring"></span><span>Verificando Ollama local…</span></div>
+          <button class="button button-primary full-width" id="generate-button" disabled><span class="sparkle">✳</span><span>Gerar blueprint</span><span class="button-arrow">→</span></button>
+        </section>
+        <div class="sidebar-footnote"><span class="lock-icon">◈</span><span>Execução local · seus mods ficam no seu PC</span></div>
+      </aside>
+      <section class="preview-area">
+        <div class="preview-toolbar">
+          <div><div class="eyebrow">CANVAS / 2D</div><h2 id="preview-title">Prévia do blueprint</h2></div>
+          <div class="canvas-controls"><span class="canvas-tag" id="canvas-status">AGUARDANDO GERAÇÃO</span><button class="icon-button small" id="zoom-out" aria-label="Diminuir zoom">−</button><button class="zoom-value" id="zoom-value">100%</button><button class="icon-button small" id="zoom-in" aria-label="Aumentar zoom">+</button><button class="icon-button small" id="fit-button" title="Ajustar à tela" aria-label="Ajustar à tela">⌗</button></div>
+        </div>
+        <div class="canvas-frame">
+          <div class="canvas-ruler ruler-top"><span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span></div>
+          <div class="canvas-ruler ruler-left"><span>0</span><span>10</span><span>20</span><span>30</span><span>40</span></div>
+          <svg id="blueprint-canvas" class="blueprint-canvas" role="img" aria-label="Prévia visual do blueprint"></svg>
+          <div id="empty-state" class="empty-state"><div class="empty-grid-icon"><span>▦</span><i></i></div><div class="empty-title">Seu projeto começa aqui</div><p>Carregue o perfil de mods, escolha a receita e defina a meta por minuto.</p><div class="empty-steps"><span>PERFIL</span><b>→</b><span>PRODUÇÃO</span><b>→</b><span>BLUEPRINT</span></div></div>
+          <div class="canvas-legend" id="canvas-legend" hidden><span><i class="legend-machine"></i>Máquina</span><span><i class="legend-belt"></i>Entrada / saída</span><span><i class="legend-pole"></i>Energia</span></div>
+        </div>
+        <div class="canvas-footer"><div class="canvas-coordinate"><span class="coordinate-cross">⌖</span><span id="canvas-coordinates">MAPA DE PRODUÇÃO</span></div><div class="canvas-scale"><span>GRADE</span><b>1 TILE</b><span class="scale-line"></span></div><div class="canvas-entities" id="entity-count">0 ENTIDADES</div></div>
+        <div class="blueprint-bar" id="blueprint-bar" hidden><div><span class="export-icon">↗</span><div><strong>Blueprint pronto para importar</strong><span>Cole a string no Factorio com Ctrl+V</span></div></div><button class="button button-secondary" id="copy-button">Copiar string</button><button class="button button-primary" id="download-button">Baixar .txt</button></div>
+        <details class="string-details" id="string-details" hidden><summary>Ver string do blueprint</summary><textarea id="blueprint-string" readonly></textarea></details>
+      </section>
+      <aside class="sidebar right-sidebar">
+        <div class="sidebar-heading results-heading"><div><div class="eyebrow">RELATÓRIO</div><h2>Resumo da linha</h2></div><span class="report-icon">⌁</span></div>
+        <div class="result-empty" id="result-empty"><div class="result-empty-mark">⌁</div><strong>Sem cálculo ainda</strong><span>O resumo de produção aparece após gerar.</span></div>
+        <div id="result-content" hidden>
+          <div class="result-kpis"><div class="kpi-card primary-kpi"><span>SAÍDA REAL</span><strong id="kpi-output">—</strong><small>itens / min</small></div><div class="kpi-card"><span>MÁQUINAS</span><strong id="kpi-machines">—</strong><small id="kpi-machine-type">—</small></div></div>
+          <div class="target-track"><div><span>Meta</span><strong id="target-label">—</strong></div><div><span>Capacidade instalada</span><strong id="capacity-label">—</strong></div><div class="track-line"><i id="target-progress"></i></div></div>
+          <div class="report-section"><div class="report-section-title"><span>FLUXO DE INSUMOS</span><span id="input-count">0</span></div><div id="ingredient-list" class="ingredient-list"></div></div>
+          <div class="report-section"><div class="report-section-title"><span>LAYOUT</span><span id="layout-style">AUTO</span></div><div class="layout-metrics"><div><span>Colunas</span><strong id="layout-columns">—</strong></div><div><span>Linhas</span><strong id="layout-rows">—</strong></div><div><span>Entidades</span><strong id="layout-entities">—</strong></div></div></div>
+          <div id="warning-box" class="warning-box" hidden></div>
+          <div class="ai-note" id="ai-note"><span class="sparkle">✳</span><span>O cálculo de produção é determinístico. A IA local escolhe o arranjo.</span></div>
+        </div>
+        <div class="report-divider"></div>
+        <div class="source-card"><div class="source-icon">◉</div><div><strong>Dados do jogo</strong><span id="source-label">Aguardando catálogo de protótipos</span></div><span class="source-indicator" id="source-indicator"></span></div>
+        <div class="right-footnote">A prévia mostra uma linha-base. Insumos externos, fluidos e efeitos de módulos podem exigir ajustes no jogo.</div>
+      </aside>
+    </main>
+    <footer class="statusbar"><div><span class="status-dot"></span><span id="footer-status">ForgePlan pronto</span></div><div><span>BUILD</span><b>0.1.0</b><span class="footer-separator">·</span><span>LOCAL ONLY</span></div></footer>
+    <div class="toast" id="toast"></div>
+  </div>
+  <script src="/web/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+.runtime/
+__pycache__/
+.serena/
+desktop/bin/
+desktop/obj/
+app/
+app-next/
+outputs/
+review-receipts/
+.superpowers/
+*.log

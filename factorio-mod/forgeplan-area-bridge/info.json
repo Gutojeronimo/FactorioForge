@@ -1,0 +1,9 @@
+{
+  "name": "forgeplan-area-bridge",
+  "version": "0.1.0",
+  "title": "ForgePlan Area Bridge",
+  "author": "ForgePlan",
+  "factorio_version": "2.1",
+  "dependencies": ["base >= 2.1.0"],
+  "description": "Exports a selected Factorio rectangle to ForgePlan so generated blueprints can be constrained to it."
+}

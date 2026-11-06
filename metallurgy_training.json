@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "profile": "metallurgy",
+  "factorio_version": "2.1.24",
+  "library_audit": {
+    "source": "outputs/blueprint-library-audit-2026-10-31/report.md",
+    "blueprint_count": 4192,
+    "entity_count": 3528645,
+    "unknown_entities": 0,
+    "unknown_recipes": 0
+  },
+  "reference_patterns": [
+    {"name": "Nilaus' Base-In-A-Book / 3. Basic Smelting", "family": "stone", "machines": 24, "width": 32, "height": 11, "signals": ["small repeated rows", "compact starter block"]},
+    {"name": "Early Smelting (more compact)", "family": "stone", "machines": 48, "width": 52, "height": 11, "signals": ["two-sided feed", "balanced furnace rows", "4 underground belts"]},
+    {"name": "Smelt Steel Compact", "family": "steel", "machines": 88, "width": 49, "height": 19, "signals": ["parallel rows", "high-throughput feed"]},
+    {"name": "Electric Furnace Array (A)", "family": "electric", "machines": 48, "entities": 409, "signals": ["substation power coverage", "shared item lanes"]},
+    {"name": "Compact Electric", "family": "electric", "machines": 23, "width": 71, "height": 5, "signals": ["narrow layout", "44 underground belts", "efficiency modules"]},
+    {"name": "Advanced Smelting (8 Beacon) 45 / sec output", "family": "electric", "machines": 13, "entities": 133, "signals": ["beacon modules", "late-game density"]},
+    {"name": "Factory Handbook / Vulcanus / Turbo Belts", "family": "space-age-foundry", "machines": 21, "signals": ["casting-iron", "fluid pipes", "modules"]},
+    {"name": "Factory Handbook / Fulgora / 8.3/s", "family": "space-age-foundry", "machines": 2, "signals": ["holmium-plate", "4 productivity-2 modules per foundry"]}
+  ],
+  "layout_policy": {
+    "automatic_max_aspect_ratio": 4.75,
+    "rules": [
+      "Recompute machine counts, ingredient rates, productivity, and equipment from the loaded Factorio prototype catalog; reference labels are not throughput proof.",
+      "Use balanced repeated furnace rows for solid-item smelting and keep item lanes accessible at both ends.",
+      "For foundry recipes, keep each fluid isolated on its own manifold and expose its real fluidbox connection as an external port.",
+      "Do not apply the solid-item repeat-body pattern to fluid recipes.",
+      "Keep secondary products and fluids visible as ports; never discard them to make the block fit.",
+      "Treat modules in community examples as optional layout evidence. Respect the app's module choice and active recipe effects.",
+      "Reject an automatic layout that exceeds the user's imported width or height."
+    ]
+  }
+}
