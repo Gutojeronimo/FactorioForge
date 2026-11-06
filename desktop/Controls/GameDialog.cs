@@ -38,7 +38,8 @@ public static class GameDialog
             ShowInTaskbar = false,
             Background = Res("FactorioBackgroundBrush") as Brush ?? Brushes.DimGray,
         };
-        if (owner is not null)
+        // Após o fechamento da janela principal, Owner lança InvalidOperationException; abre sem dono.
+        if (owner is not null && owner.IsLoaded && PresentationSource.FromVisual(owner) is not null)
         {
             window.Owner = owner;
             window.FontFamily = owner.FontFamily;

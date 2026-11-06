@@ -41,12 +41,14 @@ sealed partial class MainWindow
 
     async Task RefreshProducts()
     {
+        productsLoading.Visibility = Visibility.Visible;
         try
         {
             var data = await backend.Send("products");
             productData = J.A(data, "products"); groupData = J.A(data, "groups");
         }
         catch (Exception e) { productData = new JsonArray(); groupData = new JsonArray(); status.Text = "Não consegui montar a lista de produtos: " + e.Message; }
+        finally { productsLoading.Visibility = Visibility.Collapsed; }
         if (productData.Count == 0) catalogNotice.Text = "Catálogo não carregado · Perfil → Carregar perfil";
         BuildGroupTabs();
         RenderProductGrid();
@@ -88,9 +90,11 @@ sealed partial class MainWindow
     {
         productRows.Children.Clear(); productGrids.Clear();
         var term = productSearch.Text.Trim();
-        var matches = productData.Where(p => J.S(p, "group") == currentGroup
-            && (term == "" || J.S(p, "name").Contains(term, StringComparison.OrdinalIgnoreCase) || J.S(p, "label").Contains(term, StringComparison.OrdinalIgnoreCase))).ToList();
-        foreach (var subgroup in matches.GroupBy(p => J.S(p, "subgroup")))
+        // Com termo, a busca ignora o grupo selecionado e mostra os resultados de todos os grupos.
+        var matches = productData.Where(p => term == "" ? J.S(p, "group") == currentGroup : ProductMatches(p, term)).ToList();
+        if (term != "")
+            productRows.Children.Add(GameUI.Text(matches.Count == 0 ? "Nenhum resultado para \"" + term + "\"" : "Resultados em todos os grupos", 11, GameUI.Muted));
+        foreach (var subgroup in matches.GroupBy(p => (J.S(p, "group"), J.S(p, "subgroup"))))
         {
             var grid = new SlotGrid { Margin = new Thickness(0, 0, 0, 3) };
             grid.SetItems(subgroup.Select(p => new SlotItem(J.S(p, "name"), J.S(p, "icon"),
@@ -100,6 +104,15 @@ sealed partial class MainWindow
             productGrids.Add(grid); productRows.Children.Add(grid);
         }
         productCount.Text = productData.Count == 0 ? "" : matches.Count + " produto(s)";
+    }
+
+    /// <summary>Nome/rótulo do produto, grupo/subgrupo, nome/rótulo das receitas e nomes de ingredientes e saídas das variantes.</summary>
+    static bool ProductMatches(JsonNode? product, string term)
+    {
+        bool Has(string text) => text.Contains(term, StringComparison.OrdinalIgnoreCase);
+        return Has(J.S(product, "name")) || Has(J.S(product, "label")) || Has(J.S(product, "group_label")) || Has(J.S(product, "subgroup_label"))
+            || J.A(product, "variants").Any(v => Has(J.S(v, "recipe")) || Has(J.S(v, "label"))
+                || J.A(v, "ingredients").Any(i => Has(i?.ToString() ?? "")) || J.A(v, "products").Any(o => Has(o?.ToString() ?? "")));
     }
 
     void OnProductSelected(string name, SlotGrid source)

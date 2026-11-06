@@ -119,9 +119,10 @@
             <TextBlock x:Name="productCount" DockPanel.Dock="Right" VerticalAlignment="Bottom" FontSize="11" Opacity="0.75"/>
             <TextBlock Text="Produtos" Style="{StaticResource FactorioTitle}"/>
           </DockPanel>
-          <TextBox x:Name="productSearch" Grid.Row="1" Margin="0,0,0,6" Padding="6" FontSize="12" ToolTip="Buscar produto no grupo selecionado"/>
+          <TextBox x:Name="productSearch" Grid.Row="1" Margin="0,0,0,6" Padding="6" FontSize="12" ToolTip="Buscar em todos os grupos: produto, receita, ingrediente ou subproduto"/>
           <TabControl x:Name="groupTabs" Grid.Row="2" Padding="4"
                       Background="{StaticResource FactorioInsetBrush}" BorderBrush="{StaticResource FactorioBorderDarkBrush}"/>
+          <TextBlock x:Name="productsLoading" Grid.Row="2" Text="Carregando produtos…" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" Opacity="0.75" IsHitTestVisible="False"/>
           <StackPanel Grid.Row="3" Margin="0,8,0,0">
             <TextBlock x:Name="variantLabel" Text="Receita" FontSize="12" Margin="0,0,0,3"/>
             <ContentControl Style="{StaticResource FactorioInsetPanel}" Padding="2">

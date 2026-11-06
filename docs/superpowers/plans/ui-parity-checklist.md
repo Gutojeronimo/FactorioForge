@@ -27,7 +27,7 @@ Destinos: **Arq** / **Perfil** / **Gerar** / **Exp** / **Ajuda** (menus), **Prod
 |---|---|---|---|---|
 | `itemGroupFilter` ComboBox de grupos com ícone, item "Todos os grupos" (P:154,194,262-270) | combo | local (filtra `catalog.recipes` por `item_group`) | Prod (abas de grupo) | [x] |
 | `itemSubgroupFilter` ComboBox de subgrupos, "Todos os subgrupos" (P:155,194,353-364) | combo | local (`item_subgroup`, ordenado por `item_subgroup_order`) | Prod (filtro de subgrupo/linhas de grupo) | [x] |
-| `search` TextBox "Buscar receita ou item" (P:152,194,217) | campo | local (filtra nome, label, grupo, subgrupo, produtos, ingredientes) | Prod (busca) | [x] |
+| `search` TextBox "Buscar receita ou item" (P:152,194,217) | campo | local (filtra nome, label, grupo, subgrupo, produtos, ingredientes) | Prod (busca): com termo, procura em todos os grupos (vista "Resultados em todos os grupos") por nome/rótulo do produto, grupo/subgrupo, nome/rótulo das receitas variantes e nomes de ingredientes/saídas (`products` → `variants[].ingredients/products`, campos aditivos) | [x] |
 | `catalogState` TextBlock "N receitas · refine a busca" (P:157,345) | rótulo | local (limite de 96 resultados) | Prod / Status | [x] |
 | `recipes` WrapPanel de ícones de receita, máx. 96 (P:158,339-352), clique → `SelectRecipe` (P:365) | grade de slots | `machines` {recipe_name}; descarta resposta se a receita mudou; escolhe máquina preferida, depois `electric-furnace`, depois a primeira | Prod (slots de produto) | [x] |
 | `products` WrapPanel "Saída desejada" (P:158,195,384-393) | grade de slots | local (`selectedProduct`; tooltip indica fluido e quantidade por ciclo) | Prod (variantes de receita/saída) | [x] |

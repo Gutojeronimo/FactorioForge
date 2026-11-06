@@ -185,7 +185,7 @@ sealed partial class MainWindow
                     summary.Children.Add(GameUI.Text(J.N(physicalMetrics, "area").ToString("0") + " tiles² · " + J.N(physicalMetrics, "entity_count") + " entidades · " + J.N(physicalMetrics, "belt_length").ToString("0.#") + " tiles de esteira · score " + J.N(topology?["profile_score"], "total").ToString("0.#") + " · espera inicial " + J.N(topology, "warmup_starvation_machine_seconds").ToString("0.#") + " máquina·s", 9, GameUI.Muted));
                 var alternativeBlueprint = J.S(topology, "blueprint_string");
                 if (alternativeBlueprint != "" && J.B(topology, "physical_valid"))
-                    summary.Children.Add(GameUI.Button("Copiar alternativa " + J.S(topology, "topology"), (_, _) => { Clipboard.SetText(alternativeBlueprint); status.Text = "Alternativa física copiada; estimativa offline."; }));
+                    summary.Children.Add(GameUI.Button("Copiar alternativa " + J.S(topology, "topology"), (_, _) => CopyText(alternativeBlueprint, "Alternativa física copiada; estimativa offline.")));
             }
             var selectionReason = J.S(data["layout"], "temporal_selected_reason");
             if (selectionReason != "") summary.Children.Add(GameUI.Text(selectionReason, 10, GameUI.Muted));

@@ -32,28 +32,35 @@ sealed partial class MainWindow
         if (dialog.ShowDialog(this) == true) { preview.SavePng(dialog.FileName); status.Text = "Prévia salva."; }
     }
 
-    void CopyBlueprint() { if (result != null) { Clipboard.SetText(J.S(result, "blueprint_string")); status.Text = "Blueprint copiado."; } }
+    /// <summary>Copia para a área de transferência; se outro processo a estiver bloqueando, informa na barra de status.</summary>
+    void CopyText(string text, string done)
+    {
+        try { Clipboard.SetText(text); status.Text = done; }
+        catch (Exception e) { status.Text = "Não consegui copiar para a área de transferência: " + e.Message; }
+    }
 
-    void CopyBook() { var book = J.S(batchResult, "blueprint_book_string"); if (book == "") book = J.S(result, "blueprint_book_string"); if (book != "") { Clipboard.SetText(book); status.Text = "Livro de blueprints copiado."; } }
+    void CopyBlueprint() { if (result != null) CopyText(J.S(result, "blueprint_string"), "Blueprint copiado."); }
+
+    void CopyBook() { var book = J.S(batchResult, "blueprint_book_string"); if (book == "") book = J.S(result, "blueprint_book_string"); if (book != "") CopyText(book, "Livro de blueprints copiado."); }
 
     void CopyBusBlueprint()
     {
         if (busBlueprint == "") { status.Text = "Gere a fábrica com barramento (aba Barramento) antes de copiar."; return; }
-        Clipboard.SetText(busBlueprint); status.Text = "Blueprint copiado.";
+        CopyText(busBlueprint, "Blueprint copiado.");
     }
 
     void CopyExpansionBody()
     {
         var body = J.S(result?["expansion"], "repeat_body_blueprint_string");
         if (body == "") { status.Text = "O resultado atual não tem corpo de expansão."; return; }
-        Clipboard.SetText(body); status.Text = "Corpo repetível copiado. Alinhe as três esteiras com o bloco anterior.";
+        CopyText(body, "Corpo repetível copiado. Alinhe as três esteiras com o bloco anterior.");
     }
 
     void CopyExpansionBook()
     {
         var book = J.S(result?["expansion"], "blueprint_book_string");
         if (book == "") { status.Text = "O resultado atual não tem livro de entrada + expansão."; return; }
-        Clipboard.SetText(book); status.Text = "Livro de entrada e expansão copiado.";
+        CopyText(book, "Livro de entrada e expansão copiado.");
     }
 
     void CopyBlueprint_Click(object sender, RoutedEventArgs e) => CopyBlueprint();

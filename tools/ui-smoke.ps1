@@ -26,6 +26,11 @@ public class SmokeWin {
 $errLog = Join-Path $root '.runtime/desktop-error.log'
 $errBefore = $null
 if (Test-Path -LiteralPath $errLog) { $errBefore = (Get-Item -LiteralPath $errLog).LastWriteTimeUtc }
+function Test-ErrorLogChanged {
+  if (-not (Test-Path -LiteralPath $errLog)) { return $false }
+  $now = (Get-Item -LiteralPath $errLog).LastWriteTimeUtc
+  return ($null -eq $errBefore -or $now -ne $errBefore)
+}
 
 $exit = 0
 $p = Start-Process -FilePath $Exe -WorkingDirectory (Split-Path -Parent (Split-Path -Parent $Exe)) -PassThru
@@ -66,10 +71,7 @@ try {
       }
     }
   }
-  if (Test-Path -LiteralPath $errLog) {
-    $now = (Get-Item -LiteralPath $errLog).LastWriteTimeUtc
-    if ($null -eq $errBefore -or $now -ne $errBefore) { Write-Host "FALHA: $errLog foi criado/alterado durante o teste."; $exit = 1 }
-  }
+  if (Test-ErrorLogChanged) { Write-Host "FALHA: $errLog foi criado/alterado durante o teste."; $exit = 1 }
 } finally {
   try {
     if (-not $p.HasExited) {
@@ -78,5 +80,7 @@ try {
     }
   } catch { }
 }
+# Fechar a janela tambem pode falhar (ex.: operacao pendente); confere o log de novo apos o encerramento.
+if ($exit -eq 0 -and (Test-ErrorLogChanged)) { Write-Host "FALHA: $errLog foi criado/alterado ao fechar o app."; $exit = 1 }
 if ($exit -eq 0) { Write-Host 'OK' }
 exit $exit

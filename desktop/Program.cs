@@ -214,7 +214,7 @@ sealed partial class MainWindow : Window
             status.Text = recipeData.Count > 0 ? "Perfil pronto. Configure equipamentos e layout nas abas à direita." : "Catálogo não carregado. Use Perfil → Carregar perfil.";
         }
         catch (Exception e) { Error(e); }
-        finally { SetBusy(false, status.Text); ollamaTimer.Start(); }
+        finally { SetBusy(false, status.Text); if (!appClosing) ollamaTimer.Start(); }
     }
     void ApplyStatus(JsonNode? data)
     {
@@ -470,14 +470,17 @@ sealed partial class MainWindow : Window
         var logistics = J.S(data["layout"], "mode") switch { "robots" => "robôs logísticos", "machines" => "integração manual", _ => "esteiras compartilhadas" };
         status.Text = J.A(data, "entities").Count + " entidades na prévia · " + logistics + (J.N(data["layout"], "modular_block_count") > 1 ? " · " + J.N(data["layout"], "modular_block_count") + " blocos no Blueprint Book" : "") + (fallback > 0 ? " · " + fallback + " tipo(s) com ícone alternativo" : "") + (J.B(data["ai"], "used") ? " · IA local" : " · perfil configurado");
     }
-    void Error(Exception e) { status.Text = e.Message; GameDialog.Show(this, "ForgePlan", e.Message); }
+    // Operações pendentes ao fechar a janela falham (motor encerrado); não há a quem mostrar o erro.
+    void Error(Exception e) { if (appClosing) return; status.Text = e.Message; GameDialog.Show(this, "ForgePlan", e.Message); }
     // Menus e barra da prévia (MainWindow.xaml)
     async void OpenConfig_Click(object sender, RoutedEventArgs e) => await OpenFactoryProfile();
     void SaveConfig_Click(object sender, RoutedEventArgs e) => SaveFactoryProfile();
     void Exit_Click(object sender, RoutedEventArgs e) => Close();
     async void Generate_Click(object sender, RoutedEventArgs e)
     {
-        if (!generate.IsEnabled) { status.Text = busy ? "Aguarde a operação em andamento." : "Selecione um produto com máquina compatível antes de gerar."; return; }
+        if (busy) { status.Text = "Aguarde a operação em andamento."; return; }
+        // Com fila, Generate() gera os objetivos enfileirados mesmo sem produto selecionado.
+        if (queuedObjectives.Count == 0 && !generate.IsEnabled) { status.Text = "Selecione um produto com máquina compatível antes de gerar."; return; }
         await Generate();
     }
     async void GenerateIntegrated_Click(object sender, RoutedEventArgs e)
