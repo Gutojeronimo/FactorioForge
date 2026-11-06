@@ -351,3 +351,27 @@ def analyze(raw, entities, ports, plan, layout, game_version="1.0.0"):
         "warnings": list(dict.fromkeys(warnings)),
         "limits": ["Static capacities do not prove in-game throughput, side-loading, starvation, blocking, or external source availability."],
     }
+
+
+def require_input_signals(entities, ports, reach=3.0):
+    """Every input port needs its own constant combinator naming exactly that item (bus factories)."""
+    combinators = []
+    for entity in entities:
+        if entity.get("name") != "constant-combinator":
+            continue
+        sections = (entity.get("control_behavior") or {}).get("sections", {}).get("sections", [])
+        filters = [f for section in sections for f in section.get("filters", [])]
+        if len(filters) == 1:
+            position = entity.get("position") or {}
+            combinators.append((position.get("x", 0), position.get("y", 0), filters[0]))
+    for port in ports:
+        if port.get("kind") != "input":
+            continue
+        kind = "fluid" if port.get("type") == "fluid" else "item"
+        covered = any(
+            f.get("name") == port.get("name") and f.get("type", "item") == kind
+            and abs(x - port.get("x", 0)) <= reach and abs(y - port.get("y", 0)) <= reach
+            for x, y, f in combinators)
+        if not covered:
+            raise ValueError("Entrada %s sem combinador constante do item (porta em x=%s, y=%s)."
+                             % (port.get("name"), port.get("x"), port.get("y")))
