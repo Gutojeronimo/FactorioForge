@@ -1,0 +1,81 @@
+{
+ "id": "10-tap-shared-belt",
+ "blueprint_string": "0eNqd1uFqwyAQB/BXGfm8lpxRE/cqY4x2dUNoTVAzVkLefS7boGU2u7sviai5Hwb/6FTtj6MdgvOperibKpfsKTcueu/vqncbout97ldaGCWFNEaDbEUesz655GzMg49T5Xcn+/V5Cjsfhz6kzd4elxpDH/O8pchUfeRnvVW5+/zdmnPz4IJ9+ZnS/VY+P/vxtLch90GexBQAJwi+IHBCwxcanCD5gsIJii9onKD5QosTWr7Q4YSOLxicYKhCQ05czSeQkQPgE8jMgeATyNBBwyckkpB8AhlsUHwCmWzQfAIZbWj5BDLb0PEJZLjhOt1xOLqU8kipOGxr2l4S5FzD2l6SJeI616M/2PAW+vy+jYj/kHQelmrOD+NS4o8q6KrEqv2YbrHk+Cvy/yTHX5MJcvxbMkGOf0cmyPE3ZOI6/q+7mDbORxtuBXSzehMFUTIM0YC1Y7G0iqYmCnJtEUUBiEJHPRQbQRQMWWjYaygciXVJkOw1YAVFFC5ucTWS0PPTPH8CnrdeIw==",
+ "ticks_warmup": 600,
+ "ticks_measure": 3600,
+ "seed": 1,
+ "feed": [
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -1.5,
+    "y": 1.5
+   }
+  },
+  {
+   "item": "coal",
+   "infinite": true,
+   "position": {
+    "x": 2.5,
+    "y": 2.5
+   }
+  },
+  {
+   "item": "copper-plate",
+   "infinite": true,
+   "position": {
+    "x": 5.5,
+    "y": 1.5
+   }
+  }
+ ],
+ "sinks": [
+  {
+   "position": {
+    "x": 8.5,
+    "y": 3.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 9.5,
+    "y": 3.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 8.5,
+    "y": 7.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 9.5,
+    "y": 7.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 3.5,
+    "y": 11.5
+   },
+   "count": true
+  }
+ ],
+ "machine_modules": [],
+ "beacon_modules": [],
+ "expected": {
+  "iron-plate": 2.307666666666667,
+  "coal": 2.307666666666667,
+  "copper-plate": 2.307666666666667
+ },
+ "tolerance": {
+  "abs": 0.0,
+  "rel": 0.1
+ }
+}

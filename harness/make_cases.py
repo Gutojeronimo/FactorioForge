@@ -93,7 +93,7 @@ def vertical_belt(x, y0, y1, belt="transport-belt"):
             for i in range(int(y1 - y0) + 1)]
 
 
-def tap_case(catalog):
+def tap_case(catalog, shared=False):
     """Iron on both lanes of bus lane 0 is tapped east, under copper bus lane 1, into four counted sinks;
     copper on lane 1 must still reach its own sink. Proves splitter + underground crossing keep both lanes."""
     from bus.tap import build_tap
@@ -112,9 +112,11 @@ def tap_case(catalog):
         {"name": "fast-inserter", "position": {"x": 3.5, "y": 10.5}, "direction": NORTH},   # copper sink at the lane-1 end
     ]
     fast = inserter_budget(catalog["inserters"]["fast-inserter"], {"inserter_safety": 1})["per_min"] / 60
-    out = case("09-tap-crossing", ents, {"iron-plate": 2 * fast, "copper-plate": fast}, warmup=600, measure=3600)
+    second = "coal" if shared else "iron-plate"  # shared: iron on one lane, coal on the other, same belt
+    expected = {"iron-plate": fast, "coal": fast, "copper-plate": fast} if shared else {"iron-plate": 2 * fast, "copper-plate": fast}
+    out = case("10-tap-shared-belt" if shared else "09-tap-crossing", ents, expected, warmup=600, measure=3600)
     out["feed"] = [{"item": "iron-plate", "infinite": True, "position": {"x": -1.5, "y": 1.5}},
-                   {"item": "iron-plate", "infinite": True, "position": {"x": 2.5, "y": 2.5}},
+                   {"item": second, "infinite": True, "position": {"x": 2.5, "y": 2.5}},
                    {"item": "copper-plate", "infinite": True, "position": {"x": 5.5, "y": 1.5}}]
     out["sinks"] = [{"position": {"x": 8.5, "y": 3.5}, "count": True}, {"position": {"x": 9.5, "y": 3.5}, "count": True},
                     {"position": {"x": 8.5, "y": 7.5}, "count": True}, {"position": {"x": 9.5, "y": 7.5}, "count": True},
@@ -145,6 +147,7 @@ def build(catalog: dict) -> list:
         fluid_case(catalog),
         splitter_case(catalog),
         tap_case(catalog),
+        tap_case(catalog, shared=True),
         # One beacon north of the machine (3x3, supply area 3 reaches the machine); AM2 accepts speed from beacons.
         case("06-beacon", line("assembling-machine-2", "fast-inserter", "iron-gear-wheel", 3)
              + [{"name": "beacon", "position": {"x": 0.5, "y": -3.5}}],
