@@ -75,8 +75,9 @@ def inserter_budget(proto, cfg, belt_speed=None):
     pickup = proto.get('pickup_position', [0, -1])
     drop = proto.get('insert_position', [0, 1.2])
     radial = abs(math.hypot(*pickup) - math.hypot(*drop))
-    # Round trips, arm extension and collection delay. Surface pickup is slower than chest transfer.
-    ticks = 2 * math.ceil(.5 / rotation) + 2 * math.ceil(radial / extension) + 4
+    # Rotation and arm extension run together in game: a swing takes the slower of the two.
+    # Calibrated against Factorio 2.1.24 (docs/project/HARNESS-CALIBRATION.md).
+    ticks = 2 * max(math.ceil(.5 / rotation), math.ceil(radial / extension))
     if belt_speed:
         ticks += max(0, hand - 1) / max(.001, belt_speed * 4)
     safety = min(1, max(.3, float(cfg.get('inserter_safety', .8))))

@@ -24,7 +24,7 @@
  ],
  "machine_modules": [],
  "expected": {
-  "iron-gear-wheel": 0.48383333333333334
+  "iron-gear-wheel": 0.6
  },
  "tolerance": {
   "abs": 0.0,

@@ -9,8 +9,8 @@ Janela de medição: 300 ticks de aquecimento + 1200 ticks medidos. Produção l
 | 01 montadora 1, engrenagem, fast inserters | 1,000 | 1,000 | passa |
 | 02 montadora 2 + 2 módulos de velocidade, 3 fileiras | 2,100 | 2,100 | passa |
 | 03 montadora 2 + 2 módulos de produtividade, 3 fileiras | 1,458 | 1,450 | passa (−0,5%) |
-| 04 montadora 1, inserter **básico** limitando a entrada (janela de 7200 ticks) | 0,341 | 0,425 | **falha** (+25%) |
-| 05 montadora 1, inserter **long-handed** limitando a entrada (7200 ticks) | 0,484 | 0,625 | **falha** (+29%) |
+| 04 montadora 1, inserter **básico** limitando a entrada (janela de 7200 ticks) | 0,417 | 0,425 | passa (+2%) |
+| 05 montadora 1, inserter **long-handed** limitando a entrada (7200 ticks) | 0,600 | 0,625 | passa (+4%) |
 
 ## Leitura
 
@@ -30,7 +30,7 @@ A janela curta do caso 04 (1200 ticks) deu 0,450; com 7200 ticks o valor estabil
 | básico | 0,68 | 0,83 | 0,85 |
 | long-handed | 0,97 | 1,20 | 1,25 |
 
-A mudança está em `production_math.inserter_budget` e altera os planos gerados (menos conservadores), então **não foi aplicada**: depende de decisão sua e de ajustar os testes que fixam os valores atuais.
+**Aplicada** em `production_math.inserter_budget` (ticks = 2·max(rotação, extensão), sem o acréscimo de 4 ticks), com `tests/test_inserter_budget.py` fixando os valores medidos. Os planos ficam menos conservadores; a margem de segurança configurável (padrão 0,8) continua valendo. Após a mudança, os cinco casos passam (suíte: 159 testes).
 
 ## Não coberto ainda
 
