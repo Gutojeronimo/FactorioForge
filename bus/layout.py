@@ -31,6 +31,8 @@ class Factory:
     checks: dict = field(default_factory=dict)
     entities: list = field(default_factory=list)
     input_ports: list = field(default_factory=list)
+    output_ports: list = field(default_factory=list)
+    wires: list = field(default_factory=list)
 
 
 def _group_ports(ports):
@@ -220,8 +222,14 @@ def build_factory(raw, targets, bus, cfg, cell_factory=None, recipes=None) -> Fa
             if tile in seen:
                 raise ValueError("Sobreposição entre %s e %s em %s." % (seen[tile]["name"], e["name"], tile))
             seen[tile] = e
+    target_names = {t["name"] for t in targets}
+    for demand_cell, _ in placed:
+        if demand_cell.product not in target_names and demand_cell.product not in names:
+            warnings.append("A saída de %s (célula %s) não está conectada a nada: adicione %s ao barramento ou peça-o como meta."
+                            % (demand_cell.product, demand_cell.recipe, demand_cell.product))
+    output_ports = [p for _, ports in placed for p in ports if p.get("kind") == "output"]
     icon = targets[0]["name"] if targets else "iron-plate"
     version = next((c["game_version"] for _, c in cells), "2.1.24")
     label = "Barramento · " + ", ".join(t["name"] for t in targets)
     return Factory([_blueprint_string(entities, wires_out, label, icon, version)], plan, warnings,
-                   {"taps": len(tap_entities), "belts": len(plan.belts)}, entities, all_inputs)
+                   {"taps": len(tap_entities), "belts": len(plan.belts)}, entities, all_inputs, output_ports, wires_out)

@@ -24,6 +24,7 @@ RECIPES = [
     {"name": "gear", "ingredients": [item("iron-plate", 2)], "products": [item("gear", 1)]},
     {"name": "cable", "ingredients": [item("copper-plate", 1)], "products": [item("cable", 2)]},
     {"name": "circuit", "ingredients": [item("iron-plate", 1), item("copper-plate", 3)], "products": [item("circuit", 1)]},
+    {"name": "circuit2", "ingredients": [item("iron-plate", 1), item("cable", 3)], "products": [item("circuit2", 1)]},
     {"name": "widget", "ingredients": [item("iron-plate", 1), item("mystery-dust", 1)], "products": [item("widget", 1)]},
 ]
 
@@ -54,7 +55,7 @@ def fake_cell(rows):
     return factory
 
 
-ROWS = {"gear": ["iron-plate"], "cable": ["copper-plate"], "circuit": ["iron-plate", "copper-plate"],
+ROWS = {"circuit2": ["iron-plate", "cable"], "gear": ["iron-plate"], "cable": ["copper-plate"], "circuit": ["iron-plate", "copper-plate"],
         "widget": ["iron-plate", "mystery-dust"]}
 
 
@@ -137,6 +138,19 @@ class LayoutTests(unittest.TestCase):
         order = [b.item_a for b in f.lane_plan.belts]
         self.assertEqual(order, ["iron-plate", "copper-plate"])  # row 0 item left of row 1 item
         self.assertEqual(tiles_of(f.entities), [])
+
+    def test_intermediate_cell_output_not_on_bus_is_flagged(self):
+        f = build([{"name": "circuit2", "per_min": 60}])  # cable cell exists but cable is not on the bus
+        self.assertTrue(any("cable" in w and "barramento" in w for w in f.warnings))
+
+    def test_final_product_output_is_not_flagged(self):
+        f = build([{"name": "gear", "per_min": 60}])
+        self.assertFalse(any("não está conectada" in w for w in f.warnings))
+
+    def test_factory_exposes_wires_and_output_ports(self):
+        f = build([{"name": "gear", "per_min": 60}])
+        self.assertEqual([p["name"] for p in f.output_ports], ["gear"])
+        self.assertEqual(f.wires, [])
 
     def test_target_on_bus_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "iron-plate"):
