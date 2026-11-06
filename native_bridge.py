@@ -207,7 +207,12 @@ def command(name, payload):
         raw = server._catalog()
         if raw is None:
             raise ValueError("Carregue os protótipos do Factorio antes de gerar.")
-        return generate_bus_factory(payload, raw, server._recipe_list(raw))
+        result = generate_bus_factory(payload, raw, server._recipe_list(raw))
+        art = get_graphics()
+        result["graphics"] = {entity["name"] + "|" + str(entity.get("direction", 0)) + "|" + str(entity.get("type", "")): art.entity(entity["name"], entity.get("direction", 0), entity.get("type", "input")) for entity in result["entities"]}
+        names = {entity["name"] for entity in result["entities"]} | {t["name"] for t in payload.get("targets") or [] if isinstance(t, dict) and isinstance(t.get("name"), str)}
+        result["icons"] = {item: art.icon(item) for item in names}
+        return result
     if name == "bus_defaults":
         from bus.bridge import bus_defaults
         return bus_defaults(server._catalog() or {})

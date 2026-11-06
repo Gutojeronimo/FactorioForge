@@ -27,6 +27,12 @@ class BridgeTests(unittest.TestCase):
         self.assertGreater(out["entity_count"], 10)
         self.assertEqual(set(out["lanes"][0]), {"item_a", "item_b", "capacity_per_min", "load_a", "load_b"})
 
+    def test_bridge_exposes_factory_entities_for_the_preview(self):
+        out = run(request([{"name": "circuit", "per_min": 120}]))
+        self.assertIsInstance(out["entities"], list)
+        self.assertEqual(len(out["entities"]), out["entity_count"])
+        self.assertTrue(all("name" in e and "position" in e and "entity_number" in e for e in out["entities"]))
+
     def test_bridge_reports_config_error_with_item_name(self):
         with self.assertRaisesRegex(ValueError, "unobtainium"):
             run(request([{"name": "gear", "per_min": 60}], items=[{"name": "unobtainium"}]))

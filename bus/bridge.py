@@ -68,7 +68,8 @@ def generate_bus_factory(payload: dict, raw: dict, recipes: list, cell_factory=N
     lanes = [{"item_a": b.item_a, "item_b": b.item_b, "capacity_per_min": b.capacity_per_min,
               "load_a": b.load_a, "load_b": b.load_b} for b in factory.lane_plan.belts]
     return {"blueprints": factory.blueprints, "lanes": lanes, "free_per_min": factory.lane_plan.free_per_min,
-            "warnings": factory.warnings, "checks": factory.checks, "entity_count": len(factory.entities)}
+            "warnings": factory.warnings, "checks": factory.checks, "entity_count": len(factory.entities),
+            "entities": factory.entities}
 
 
 def bus_defaults(raw: dict) -> dict:
