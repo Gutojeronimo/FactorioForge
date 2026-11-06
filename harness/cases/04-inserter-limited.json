@@ -1,0 +1,33 @@
+{
+ "id": "04-inserter-limited",
+ "blueprint_string": "0eNqVjVELgkAQhP+K3HMX3aWG/ZWIUFt0wVvl7qzk8L+3WlGED/WyDDOz3wRRND10FsmLfRQEejAsPtxVJC5gHbbEfpLqLIl1nGWpineaMyCPHsFxeAiCcgPTe+4cmKJBqqTJyxoJpJpIXeu4PaOCuPHdrBO2h4caWVoosZsZaFuSFeRWXmuARrzGhhP1pgDLHcUf71EkB9ZzsDQk1ffSGXnr2VF6ga5/p+u/4dvxOI53tWt0vw==",
+ "ticks_warmup": 300,
+ "ticks_measure": 1200,
+ "seed": 1,
+ "feed": [
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -2.5,
+    "y": 0.5
+   }
+  }
+ ],
+ "sinks": [
+  {
+   "position": {
+    "x": 3.5,
+    "y": 0.5
+   }
+  }
+ ],
+ "machine_modules": [],
+ "expected": {
+  "iron-gear-wheel": 0.34091666666666665
+ },
+ "tolerance": {
+  "abs": 0.0,
+  "rel": 0.05
+ }
+}

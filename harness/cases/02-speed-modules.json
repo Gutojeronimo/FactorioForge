@@ -1,0 +1,66 @@
+{
+ "id": "02-speed-modules",
+ "blueprint_string": "0eNqdj9EOgjAMRX/F7NkZNwGDv2KMGVi1CStkGyoh/LsFNRrjA/LS3PTe9uS2IitqqBxSEJtZKzCAZfGxnc/EBZzHkngfJzqNIx2laaKitWYPKGBA8GxuW0HGQn9uvAebFUgnaU1+RgKp+09V6Tk9vGrFjedyEfO6eaiOpYMcq+EHupLkCYyT1zNAIV6wZk+1zcBxRvHFG3o0PkgkDy6w+4sm1TfugAx8ZpT+gdB/IvTfhNX0EnIsI5rcYjQinl5DjUQkk1uMJay7XdfdAeUC8Aw=",
+ "ticks_warmup": 300,
+ "ticks_measure": 1200,
+ "seed": 1,
+ "feed": [
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -2.5,
+    "y": 0.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -2.5,
+    "y": -0.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -2.5,
+    "y": 1.5
+   }
+  }
+ ],
+ "sinks": [
+  {
+   "position": {
+    "x": 3.5,
+    "y": 0.5
+   }
+  },
+  {
+   "position": {
+    "x": 3.5,
+    "y": -0.5
+   }
+  },
+  {
+   "position": {
+    "x": 3.5,
+    "y": 1.5
+   }
+  }
+ ],
+ "machine_modules": [
+  {
+   "name": "speed-module",
+   "count": 2
+  }
+ ],
+ "expected": {
+  "iron-gear-wheel": 2.0999999999999996
+ },
+ "tolerance": {
+  "abs": 0.0,
+  "rel": 0.05
+ }
+}

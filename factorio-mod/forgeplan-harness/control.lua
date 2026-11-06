@@ -63,6 +63,18 @@ local function place_feeds(surface)
   end
 end
 
+local function insert_modules(surface)
+  for _, m in pairs(surface.find_entities_filtered{type = {"assembling-machine", "furnace"}}) do
+    local inv = m.get_module_inventory()
+    if inv then
+      for _, mod in pairs(case.machine_modules or {}) do
+        local inserted = inv.insert{name = mod.name, count = mod.count}
+        if inserted < mod.count then add_error("módulos inseridos " .. inserted .. "/" .. mod.count .. " em " .. m.name) end
+      end
+    end
+  end
+end
+
 local function refill_power(surface)
   for _, e in pairs(surface.find_entities_filtered{force = "player"}) do
     local ok, size = pcall(function() return e.electric_buffer_size end)
@@ -116,6 +128,7 @@ local function init()
   local ok, err = pcall(function()
     storage.built, storage.rejected = build_blueprint(surface)
     place_feeds(surface)
+    insert_modules(surface)
   end)
   if not ok then add_error(err) end
   storage.started = true

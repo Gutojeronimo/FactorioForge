@@ -1,0 +1,33 @@
+{
+ "id": "01-single-assembler",
+ "blueprint_string": "0eNqVjcEOgjAQRH/F9GyNrYDBXzHGFFxhE7qQtqiE8O8uqNEYLlw2k5nZeb3IqhYahxTEYdULDGBZ/LjrlbiB81gT+3Gi0zjSUZomKtprzoACBgTP4bEXZCyM78Z7sFmFVEhr8hIJpBqXmtpze5rqxYPvdhOz3b3UwNJBjs20ga4mWYBx8l4CVOID687U2gwcdxR/fKFX44NE8uACp3M0qf5xF2Tgu6P0DEIvROjFhN1wGoYnr/N4dQ==",
+ "ticks_warmup": 300,
+ "ticks_measure": 1200,
+ "seed": 1,
+ "feed": [
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -2.5,
+    "y": 0.5
+   }
+  }
+ ],
+ "sinks": [
+  {
+   "position": {
+    "x": 3.5,
+    "y": 0.5
+   }
+  }
+ ],
+ "machine_modules": [],
+ "expected": {
+  "iron-gear-wheel": 1.0
+ },
+ "tolerance": {
+  "abs": 0.0,
+  "rel": 0.05
+ }
+}

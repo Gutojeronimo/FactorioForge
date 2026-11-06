@@ -40,6 +40,14 @@ class CaseTests(unittest.TestCase):
         ok = validate_case(valid(sinks=[{"position": {"x": 1, "y": 2}}]))
         self.assertEqual(ok.sinks[0]["position"]["x"], 1)
 
+    def test_machine_modules_validated(self):
+        self.assertEqual(validate_case(valid()).machine_modules, [])
+        ok = validate_case(valid(machine_modules=[{"name": "speed-module", "count": 2}]))
+        self.assertEqual(ok.machine_modules[0]["count"], 2)
+        for bad in ([{"name": "x"}], [{"name": "x", "count": 0}], "speed-module"):
+            with self.assertRaises(ValueError):
+                validate_case(valid(machine_modules=bad))
+
     def test_seed_must_be_int(self):
         with self.assertRaises(ValueError):
             validate_case(valid(seed="1"))
