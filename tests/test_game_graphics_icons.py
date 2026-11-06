@@ -24,6 +24,22 @@ class IconTests(unittest.TestCase):
         raw = {"item": {"x": {"icons": [{"icon": "__missing-mod__/glow.png"}, {"icon": "__base__/graphics/belt.png"}]}}}
         self.assertTrue(self.graphics(raw).icon("x"))
 
+    def test_glow_layer_is_skipped_when_a_real_layer_resolves(self):
+        (self.tmp / "data" / "base" / "graphics" / "item-glow.png").write_bytes(b"png")
+        raw = {"item": {"x": {"icons": [{"icon": "__base__/graphics/item-glow.png"}, {"icon": "__base__/graphics/belt.png"}]}}}
+        self.assertTrue(self.graphics(raw).icon("x").endswith("belt.png"))
+
+    def test_glow_layer_is_used_when_it_is_the_only_one(self):
+        (self.tmp / "data" / "base" / "graphics" / "item-glow.png").write_bytes(b"png")
+        raw = {"item": {"x": {"icons": [{"icon": "__base__/graphics/item-glow.png"}]}}}
+        self.assertTrue(self.graphics(raw).icon("x").endswith("item-glow.png"))
+
+    def test_glow_only_item_uses_the_entity_icon_with_the_same_name(self):
+        (self.tmp / "data" / "base" / "graphics" / "item-glow.png").write_bytes(b"png")
+        raw = {"item": {"x": {"icons": [{"icon": "__base__/graphics/item-glow.png"}]}},
+               "transport-belt": {"x": {"icons": [{"icon": "__base__/graphics/belt.png"}]}}}
+        self.assertTrue(self.graphics(raw).icon("x").endswith("belt.png"))
+
     def test_plain_icon_still_works(self):
         raw = {"item": {"belt": {"icon": "__base__/graphics/belt.png"}}}
         self.assertTrue(self.graphics(raw).icon("belt"))

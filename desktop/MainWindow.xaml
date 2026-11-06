@@ -81,6 +81,9 @@
           <MenuItem Header="_Exportar">
             <MenuItem Header="Copiar blueprint" Click="CopyBlueprint_Click"/>
             <MenuItem Header="Copiar livro" Click="CopyBook_Click"/>
+            <MenuItem Header="Copiar blueprint da fábrica com barramento" Click="CopyBusBlueprint_Click"/>
+            <MenuItem Header="Copiar corpo de expansão" Click="CopyExpansionBody_Click"/>
+            <MenuItem Header="Copiar livro: entrada + expansão" Click="CopyExpansionBook_Click"/>
             <Separator/>
             <MenuItem Header="Salvar blueprint .txt…" Click="ExportTxt_Click"/>
             <MenuItem Header="Salvar livro .txt…" Click="ExportBook_Click"/>
@@ -191,6 +194,7 @@
     <Border Grid.Row="2" Background="{StaticResource FactorioInsetBrush}" BorderBrush="{StaticResource FactorioBorderLightBrush}" BorderThickness="0,1,0,0" Padding="12,4">
       <DockPanel>
         <TextBlock x:Name="profile" DockPanel.Dock="Right" Text="Lendo perfil…" FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource FactorioGreenBrush}"/>
+        <TextBlock x:Name="aiBadge" DockPanel.Dock="Right" Text="IA: …" FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center" Opacity="0.85"/>
         <TextBlock x:Name="fontState" DockPanel.Dock="Right" FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center" Opacity="0.75"/>
         <TextBlock x:Name="catalogNotice" DockPanel.Dock="Right" FontSize="11" Margin="16,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource FactorioSelectionBrush}"/>
         <TextBlock x:Name="status" Text="Iniciando motor local…" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>

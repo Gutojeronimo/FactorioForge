@@ -80,7 +80,7 @@ sealed partial class MainWindow
         queueTab.Content = UI.Scroll(BuildQueuePanel());
         summaryTab.Content = UI.Scroll(BuildSummaryPanel());
         balancerTab.Content = UI.Scroll(BuildBalancerPanel());
-        aiPanel.Margin = new Thickness(12); aiTab.Content = UI.Scroll(aiPanel);
+        aiTab.Content = UI.Scroll(BuildAiPanel());
         settingsTabs.SelectedItem = factoryTab;
         generationTimer.Tick += (_, _) => status.Text = generationStage + " · " + generationWatch.Elapsed.ToString(@"mm\:ss");
     }

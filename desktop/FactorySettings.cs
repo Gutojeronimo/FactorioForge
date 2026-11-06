@@ -10,7 +10,7 @@ namespace ForgePlan;
 
 sealed partial class MainWindow
 {
-    readonly StackPanel equipmentPanel = new(), modulesPanel = new(), machineBadge = new(), aiPanel = new();
+    readonly StackPanel equipmentPanel = new(), modulesPanel = new(), machineBadge = new();
     readonly ListBox logisticsMode = new();
     readonly ListBox rotationChoice = new();
     readonly ListBox arrangementChoice = new();
@@ -52,30 +52,69 @@ sealed partial class MainWindow
     static double DecimalValue(TextBox box, double fallback) => double.TryParse(box.Text.Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var n) ? Math.Clamp(n, 0, 100) : fallback;
     static ListBoxItem Choice(string label, object key) => new() { Content = label, Tag = key, Padding = new Thickness(8) };
 
-    // Aba Balanceador (Task 7 reestiliza; aqui só foi separada da antiga construção das abas).
+    static ComboBoxItem ComboChoice(string label, string key) => new() { Content = label, Tag = key };
+
+    // Aba Balanceador: mesmos campos e o mesmo comando generate_balancer de antes.
     UIElement BuildBalancerPanel()
     {
-        var balancers = new StackPanel { Margin = new Thickness(12) };
-        balancers.Children.Add(UI.Text("Balanceadores de esteiras", 19));
-        UI.Label(balancers, "Topologia exata");
-        balancerTopologyChoice.Items.Add(Choice("1 entrada → 2 saídas", "splitter-1-2"));
-        balancerTopologyChoice.Items.Add(Choice("2 entradas → 1 saída", "splitter-2-1"));
-        balancerTopologyChoice.Items.Add(Choice("2 entradas → 2 saídas", "splitter-2-2")); balancerTopologyChoice.SelectedIndex = 2; balancers.Children.Add(balancerTopologyChoice);
-        UI.Label(balancers, "Esteira ativa"); balancers.Children.Add(balancerBeltChoice);
-        UI.Label(balancers, "Splitter ativo"); balancers.Children.Add(balancerSplitterChoice);
+        var panel = new StackPanel { Margin = new Thickness(10, 8, 10, 12) };
+        panel.Children.Add(GameUI.Title("Balanceadores de esteiras"));
+        GameUI.Section(panel, "Topologia exata");
+        balancerTopologyChoice.Items.Add(ComboChoice("1 entrada → 2 saídas", "splitter-1-2"));
+        balancerTopologyChoice.Items.Add(ComboChoice("2 entradas → 1 saída", "splitter-2-1"));
+        balancerTopologyChoice.Items.Add(ComboChoice("2 entradas → 2 saídas", "splitter-2-2")); balancerTopologyChoice.SelectedIndex = 2;
+        panel.Children.Add(balancerTopologyChoice);
+        GameUI.Section(panel, "Equipamento");
+        panel.Children.Add(GameUI.Text("Esteira ativa", 11)); panel.Children.Add(balancerBeltChoice);
+        panel.Children.Add(GameUI.Text("Splitter ativo", 11)); panel.Children.Add(balancerSplitterChoice);
         foreach (var entry in new[] { ("Sem prioridade", ""), ("Faixa esquerda", "left"), ("Faixa direita", "right") })
         {
-            balancerInputPriority.Items.Add(Choice(entry.Item1, entry.Item2));
-            balancerOutputPriority.Items.Add(Choice(entry.Item1, entry.Item2));
+            balancerInputPriority.Items.Add(ComboChoice(entry.Item1, entry.Item2));
+            balancerOutputPriority.Items.Add(ComboChoice(entry.Item1, entry.Item2));
         }
         balancerInputPriority.SelectedIndex = 0; balancerOutputPriority.SelectedIndex = 0;
-        UI.Label(balancers, "Prioridade de entrada"); balancers.Children.Add(balancerInputPriority);
-        UI.Label(balancers, "Prioridade de saída"); balancers.Children.Add(balancerOutputPriority);
-        UI.Label(balancers, "Comprimento reto das entradas/saídas · tiles (2–64)"); balancers.Children.Add(balancerLengthBox);
-        UI.Label(balancers, "Fluxo requerido · 0 = não especificado"); balancers.Children.Add(balancerFlowBox);
-        balancers.Children.Add(UI.Text("Este módulo transporta um único material em todas as faixas. Não é balanceador throughput-unlimited nem é inserido automaticamente na fábrica. Teste no Factorio antes de conectar à linha.", 11, UI.Muted));
-        balancers.Children.Add(UI.Button("Gerar blueprint do balanceador", async (_, _) => await GenerateBalancer()));
-        return balancers;
+        GameUI.Section(panel, "Prioridade e dimensões");
+        panel.Children.Add(GameUI.Text("Prioridade de entrada", 11)); panel.Children.Add(balancerInputPriority);
+        panel.Children.Add(GameUI.Text("Prioridade de saída", 11)); panel.Children.Add(balancerOutputPriority);
+        panel.Children.Add(GameUI.Field("Comprimento reto das entradas/saídas · tiles (2–64)", balancerLengthBox));
+        panel.Children.Add(GameUI.Field("Fluxo requerido · 0 = não especificado", balancerFlowBox));
+        panel.Children.Add(GameUI.Text("Este módulo transporta um único material em todas as faixas. Não é balanceador throughput-unlimited nem é inserido automaticamente na fábrica. Teste no Factorio antes de conectar à linha.", 11, GameUI.Warning));
+        panel.Children.Add(GameUI.Button("Gerar blueprint do balanceador", async (_, _) => await GenerateBalancer(), "FactorioButtonGreen"));
+        panel.Children.Add(GameUI.Hint("O resumo (capacidade, portas) aparece na aba Resumo e o blueprint no menu Exportar."));
+        return panel;
+    }
+
+    // Aba IA: mesmo comando ollama, lista de modelos, tempo máximo, fallback e preferências.
+    UIElement BuildAiPanel()
+    {
+        var panel = new StackPanel { Margin = new Thickness(10, 8, 10, 12) };
+        panel.Children.Add(GameUI.Title("Assistente de layout"));
+        GameUI.Section(panel, "Ollama");
+        panel.Children.Add(GameUI.Text("Endereço Ollama", 11));
+        ollamaUrl.Margin = new Thickness(0, 2, 0, 2); ollamaUrl.Padding = new Thickness(5, 3, 5, 3); panel.Children.Add(ollamaUrl);
+        panel.Children.Add(GameUI.Button("Atualizar modelos", async (_, _) => await RefreshOllama(true)));
+        ollamaState.Foreground = GameUI.Muted; panel.Children.Add(ollamaState);
+        GameUI.Section(panel, "Modelo");
+        if (TryFindResource("FactorioList") is Style list) models.Style = list;
+        models.Margin = new Thickness(0, 2, 0, 4);
+        models.SelectionChanged += (_, _) => RenderAiBadge();
+        panel.Children.Add(models);
+        panel.Children.Add(GameUI.Hint("\"Layout automático\" não consulta a IA; usa o perfil configurado."));
+        GameUI.Section(panel, "Opções");
+        panel.Children.Add(GameUI.Field("Tempo máximo para sugestão (segundos, 15–600)", timeoutBox));
+        allowFallback.Foreground = GameUI.TextBrush; panel.Children.Add(allowFallback);
+        panel.Children.Add(GameUI.Text("Preferências para a IA (opcional)", 11));
+        aiInstructions.Height = 100; panel.Children.Add(aiInstructions);
+        panel.Children.Add(GameUI.Hint("A IA sugere a disposição dentro do perfil escolhido. Use 0 em máquinas por linha para permitir essa escolha; os equipamentos e parâmetros manuais são respeitados."));
+        return panel;
+    }
+
+    /// <summary>Resumo da IA na barra de status: modelo escolhido ou falha de conexão.</summary>
+    void RenderAiBadge()
+    {
+        var model = (models.SelectedItem as ListBoxItem)?.Tag?.ToString() ?? "";
+        aiBadge.Text = "IA: " + (model == "" ? "layout automático" : model);
+        aiBadge.ToolTip = ollamaState.Text + (ollamaState.ToolTip is string tip && tip != "" ? Environment.NewLine + tip : "");
     }
 
     void RenderBalancerChoices()

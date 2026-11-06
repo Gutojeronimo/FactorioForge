@@ -50,6 +50,7 @@ sealed partial class MainWindow
         if (productData.Count == 0) catalogNotice.Text = "Catálogo não carregado · Perfil → Carregar perfil";
         BuildGroupTabs();
         RenderProductGrid();
+        RenderBusItems();
         variantsFor = null; SyncProductSelection();
     }
 

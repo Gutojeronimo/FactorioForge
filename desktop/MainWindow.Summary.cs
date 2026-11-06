@@ -111,8 +111,8 @@ sealed partial class MainWindow
         if (data["expansion"] is JsonNode expansion && J.S(expansion, "repeat_body_blueprint_string") != "")
         {
             summary.Children.Add(GameUI.Text("Bloco espelhado com saída central. Repita o corpo a cada " + J.N(expansion, "pitch_tiles") + " tiles; alimentação e saída compartilham o limite de " + J.N(expansion, "shared_belt_capacity_per_min") + " itens/min por esteira.", 11, GameUI.Green));
-            summary.Children.Add(GameUI.Button("Copiar corpo de expansão", (_, _) => { Clipboard.SetText(J.S(expansion, "repeat_body_blueprint_string")); status.Text = "Corpo repetível copiado. Alinhe as três esteiras com o bloco anterior."; }));
-            summary.Children.Add(GameUI.Button("Copiar livro: entrada + expansão", (_, _) => { Clipboard.SetText(J.S(expansion, "blueprint_book_string")); status.Text = "Livro de entrada e expansão copiado."; }));
+            summary.Children.Add(GameUI.Button("Copiar corpo de expansão", (_, _) => CopyExpansionBody()));
+            summary.Children.Add(GameUI.Button("Copiar livro: entrada + expansão", (_, _) => CopyExpansionBook()));
         }
         summary.Children.Add(GameUI.Text(blocks > 1
             ? "Megabase · " + blocks + " blocos · bloco " + J.N(data["layout"]?["single_block_dimensions"], "width") + "×" + J.N(data["layout"]?["single_block_dimensions"], "height") + " tiles · " + J.N(data["layout"], "entity_count") + " entidades e " + J.N(data["layout"], "factory_area") + " tiles² somados"

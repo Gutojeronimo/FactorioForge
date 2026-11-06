@@ -65,6 +65,9 @@ sealed partial class MainWindow
         await Generate();
     }
 
+    /// <summary>Lote/cadeia com falhas parciais: a prévia mostra a primeira fábrica e os erros ficam na aba Fila.</summary>
+    static string QueueFailureHint(JsonNode? data) => J.N(data, "failure_count") > 0 ? " Veja os erros na aba Fila." : "";
+
     void RenderBatchResults()
     {
         queueResults.Children.Clear();

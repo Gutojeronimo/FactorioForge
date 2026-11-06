@@ -70,6 +70,22 @@ class GameGraphics:
             pass
         return 0, 0
 
+    def _layer_icon(self, proto: dict) -> tuple:
+        """(first resolvable non-glow layer, first resolvable glow layer) of an ``icons`` list.
+
+        Mod variants (e.g. tenebris "item-glow.png") put a generic glow first; the real icon is preferred."""
+        glow = None
+        for layer in proto.get("icons") if isinstance(proto.get("icons"), list) else []:
+            path = layer.get("icon") if isinstance(layer, dict) else None
+            resolved = self.asset_path(path) if isinstance(path, str) else None
+            if not resolved:
+                continue
+            if "glow" in path.lower():
+                glow = glow or resolved
+            else:
+                return resolved, glow
+        return None, glow
+
     @lru_cache(maxsize=1024)
     def icon(self, name: str) -> str | None:
         proto = self.prototypes.get(name, {})
@@ -77,11 +93,18 @@ class GameGraphics:
         if not isinstance(logical, str):  # the dump writes removed properties as {"op": "delete"} markers
             logical = None
         if not logical and isinstance(proto.get("icons"), list):
-            for layer in proto["icons"]:
-                path = layer.get("icon") if isinstance(layer, dict) else None
-                resolved = self.asset_path(path) if isinstance(path, str) else None
-                if resolved:
-                    return resolved
+            real, glow = self._layer_icon(proto)
+            if real:
+                return real
+            if glow:
+                # Glow-only item (e.g. tenebris "bioluminescent-*"): the entity with the same name usually has the real icon.
+                for prototypes in self.raw.values():
+                    other = prototypes.get(name) if isinstance(prototypes, dict) else None
+                    if isinstance(other, dict) and other is not proto:
+                        real = self._layer_icon(other)[0]
+                        if real:
+                            return real
+                return glow
         if not logical and proto.get("results"):
             first = proto["results"][0]
             if isinstance(first, dict) and first.get("name") != name:

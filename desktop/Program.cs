@@ -155,7 +155,7 @@ sealed partial class MainWindow : Window
     readonly TextBlock ollamaState = UI.Text("Verificando Ollama…", 11, UI.Muted);
     readonly StackPanel objectiveQueue = new();
     readonly StackPanel summary = new();
-    readonly ListBox models = new() { MaxHeight = 72, Background = UI.Brush("#101813"), Foreground = Brushes.WhiteSmoke, BorderBrush = UI.Line };
+    readonly ListBox models = new() { MaxHeight = 180 };
     readonly GamePreview preview = new();
     readonly Button generate, load;
     readonly DispatcherTimer ollamaTimer = new() { Interval = TimeSpan.FromSeconds(20) };
@@ -174,11 +174,6 @@ sealed partial class MainWindow : Window
         previewFrame.Child = preview;
         InitializeFactoryTabs();
         machineBadgeHost.Content = machineBadge;
-        aiPanel.Children.Add(UI.Text("Assistente de layout", 19)); UI.Label(aiPanel, "Endereço Ollama"); aiPanel.Children.Add(ollamaUrl); aiPanel.Children.Add(UI.Button("Atualizar modelos", async (_, _) => await RefreshOllama(true)));
-        UI.Label(aiPanel, "Tempo máximo para sugestão (segundos)"); aiPanel.Children.Add(timeoutBox); aiPanel.Children.Add(allowFallback);
-        UI.Label(aiPanel, "Preferências para a IA (opcional)"); aiInstructions.Height = 100; aiPanel.Children.Add(aiInstructions);
-        aiPanel.Children.Add(UI.Text("A IA sugere a disposição dentro do perfil escolhido. Use 0 em máquinas por linha para permitir essa escolha; os equipamentos e parâmetros manuais são respeitados.", 12, UI.Muted));
-        generatePanel.Children.Add(UI.Text("IA LOCAL", 10, UI.Lime)); generatePanel.Children.Add(ollamaState); generatePanel.Children.Add(models);
         generate = GameUI.Button("Gerar blueprint(s)", async (_, _) => await Generate(), "FactorioButtonGreen"); generate.IsEnabled = false;
         cancelGeneration = GameUI.Button("Cancelar", (_, _) => generationCancellation?.Cancel(), "FactorioButtonRed"); cancelGeneration.IsEnabled = false;
         BuildGeneratePanel();
@@ -284,12 +279,12 @@ sealed partial class MainWindow : Window
                 foreach (var name in names) models.Items.Add(new ListBoxItem { Content = name, Tag = name });
                 models.SelectedItem = models.Items.Cast<ListBoxItem>().FirstOrDefault(i => i.Tag.ToString() == previous) ?? models.Items[0];
             }
-            var connected = J.B(data, "connected"); ollamaState.Foreground = connected ? UI.Lime : UI.Brush("#E9AD76");
+            var connected = J.B(data, "connected"); ollamaState.Foreground = connected ? GameUI.Green : GameUI.Warning;
             ollamaState.Text = connected ? (names.Count > 0 ? "Ollama conectado · " + names.Count + " modelo(s)" : "Ollama conectado · nenhum modelo instalado") : "Falha ao conectar ao Ollama";
             ollamaState.ToolTip = connected ? J.S(data, "url") : J.S(data, "error");
         }
-        catch (Exception e) { ollamaState.Text = "Falha ao consultar Ollama"; ollamaState.ToolTip = e.Message; }
-        finally { refreshingOllama = false; }
+        catch (Exception e) { ollamaState.Text = "Falha ao consultar Ollama"; ollamaState.ToolTip = e.Message; ollamaState.Foreground = GameUI.Warning; }
+        finally { refreshingOllama = false; RenderAiBadge(); }
     }
     async Task SelectRecipe(JsonNode recipe, string? product = null)
     {
@@ -346,7 +341,7 @@ sealed partial class MainWindow : Window
                 selectedProduct = J.S(result["plan"], "product_name"); selectedMachine = J.S(result["plan"], "machine_name");
                 SyncProductSelection();
                 GenerateView(result, selectedProduct, selectedMachine); RenderBatchResults(); queuedObjectives.Clear(); RenderObjectiveQueue();
-                status.Text = J.N(batchResult, "success_count") + " fábricas geradas · " + J.N(batchResult, "failure_count") + " falhas independentes.";
+                status.Text = J.N(batchResult, "success_count") + " fábricas geradas · " + J.N(batchResult, "failure_count") + " falhas independentes." + QueueFailureHint(batchResult);
                 return;
             }
             batchResult = null;
@@ -386,8 +381,8 @@ sealed partial class MainWindow : Window
             if (first == null)
             {
                 result = null; preview.Clear(); summary.Children.Clear();
-                RenderIntegratedPlan(data); RenderBatchResults();
-                status.Text = "Nenhum bloco físico foi gerado; consulte as falhas por receita.";
+                RenderIntegratedPlan(data); RenderBatchResults(); settingsTabs.SelectedItem = queueTab;
+                status.Text = "Nenhum bloco físico foi gerado; consulte as falhas por receita na aba Fila.";
                 return;
             }
             result = first["result"] is JsonNode firstFactory ? BatchPreview(firstFactory) : null;
@@ -397,7 +392,7 @@ sealed partial class MainWindow : Window
             SyncProductSelection(); GenerateView(result, selectedProduct, selectedMachine);
             RenderIntegratedPlan(data);
             RenderBatchResults();
-            status.Text = J.N(data, "success_count") + " bloco(s) físicos gerados · " + J.N(data, "failure_count") + " falha(s) · conecte as portas entre blocos no jogo.";
+            status.Text = J.N(data, "success_count") + " bloco(s) físicos gerados · " + J.N(data, "failure_count") + " falha(s) · conecte as portas entre blocos no jogo." + QueueFailureHint(data);
         }
         catch (OperationCanceledException) { status.Text = "Planejamento conjunto cancelado."; }
         catch (Exception e) { Error(e); }
@@ -461,7 +456,7 @@ sealed partial class MainWindow : Window
             selectedRecipe = recipeData.FirstOrDefault(recipe => J.S(recipe, "name") == J.S(first, "recipe_name"))?.DeepClone();
             selectedProduct = J.S(result["plan"], "product_name"); selectedMachine = J.S(result["plan"], "machine_name");
             SyncProductSelection(); GenerateView(result, selectedProduct, selectedMachine); RenderBatchResults();
-            status.Text = J.N(batchResult, "success_count") + " módulos independentes gerados · " + J.N(batchResult, "failure_count") + " falhas · conecte as entradas e saídas no jogo.";
+            status.Text = J.N(batchResult, "success_count") + " módulos independentes gerados · " + J.N(batchResult, "failure_count") + " falhas · conecte as entradas e saídas no jogo." + QueueFailureHint(batchResult);
         }
         catch (OperationCanceledException) { status.Text = "Geração da cadeia cancelada."; }
         catch (Exception e) { Error(e); }
@@ -476,29 +471,6 @@ sealed partial class MainWindow : Window
         status.Text = J.A(data, "entities").Count + " entidades na prévia · " + logistics + (J.N(data["layout"], "modular_block_count") > 1 ? " · " + J.N(data["layout"], "modular_block_count") + " blocos no Blueprint Book" : "") + (fallback > 0 ? " · " + fallback + " tipo(s) com ícone alternativo" : "") + (J.B(data["ai"], "used") ? " · IA local" : " · perfil configurado");
     }
     void Error(Exception e) { status.Text = e.Message; GameDialog.Show(this, "ForgePlan", e.Message); }
-    void Export()
-    {
-        if (result == null) return;
-        var modular = J.N(result["layout"], "modular_block_count") > 1;
-        var dialog = new SaveFileDialog { Filter = modular ? "Livro de blueprints Factorio (*.txt)|*.txt" : "Blueprint Factorio (*.txt)|*.txt", FileName = selectedProduct + (modular ? "-modular-book.txt" : "-blueprint.txt") };
-        if (dialog.ShowDialog(this) == true) { File.WriteAllText(dialog.FileName, J.S(result, "blueprint_string"), new UTF8Encoding(false)); status.Text = modular ? "Livro modular exportado." : "Blueprint exportado."; }
-    }
-    void ExportBook()
-    {
-        var book = J.S(batchResult, "blueprint_book_string"); if (book == "") book = J.S(result, "blueprint_book_string"); if (book == "") return;
-        var modular = J.N(result?["layout"], "modular_block_count") > 1;
-        var dialog = new SaveFileDialog { Filter = "Livro de blueprints Factorio (*.txt)|*.txt", FileName = modular ? "ForgePlan-modular.txt" : "ForgePlan-book.txt" };
-        if (dialog.ShowDialog(this) == true) { File.WriteAllText(dialog.FileName, book, new UTF8Encoding(false)); status.Text = "Livro de blueprints exportado."; }
-    }
-    void SavePreview()
-    {
-        if (result == null) return;
-        var dialog = new SaveFileDialog { Filter = "Imagem PNG (*.png)|*.png", FileName = selectedProduct + "-previa.png" };
-        if (dialog.ShowDialog(this) == true) { preview.SavePng(dialog.FileName); status.Text = "Prévia salva."; }
-    }
-    void CopyBlueprint() { if (result != null) { Clipboard.SetText(J.S(result, "blueprint_string")); status.Text = "Blueprint copiado."; } }
-    void CopyBook() { var book = J.S(batchResult, "blueprint_book_string"); if (book == "") book = J.S(result, "blueprint_book_string"); if (book != "") { Clipboard.SetText(book); status.Text = "Livro de blueprints copiado."; } }
-
     // Menus e barra da prévia (MainWindow.xaml)
     async void OpenConfig_Click(object sender, RoutedEventArgs e) => await OpenFactoryProfile();
     void SaveConfig_Click(object sender, RoutedEventArgs e) => SaveFactoryProfile();
@@ -515,11 +487,6 @@ sealed partial class MainWindow : Window
     }
     async void GenerateBus_Click(object sender, RoutedEventArgs e) => await GenerateBus();
     async void GenerateBalancer_Click(object sender, RoutedEventArgs e) => await GenerateBalancer();
-    void CopyBlueprint_Click(object sender, RoutedEventArgs e) => CopyBlueprint();
-    void CopyBook_Click(object sender, RoutedEventArgs e) => CopyBook();
-    void ExportTxt_Click(object sender, RoutedEventArgs e) => Export();
-    void ExportBook_Click(object sender, RoutedEventArgs e) => ExportBook();
-    void ExportPng_Click(object sender, RoutedEventArgs e) => SavePreview();
     void AddObjective_Click(object sender, RoutedEventArgs e) => AddObjective();
     void ZoomOut_Click(object sender, RoutedEventArgs e) => preview.ChangeZoom(-.2);
     void ZoomIn_Click(object sender, RoutedEventArgs e) => preview.ChangeZoom(.2);
