@@ -61,8 +61,9 @@ def validate_case(data: dict) -> Case:
             raise ValueError("cada feed precisa de item ou fluid (exatamente um)")
     sinks = data.get("sinks", [])
     if not isinstance(sinks, list) or any(
-            not isinstance(s, dict) or not isinstance(s.get("position"), dict) for s in sinks):
-        raise ValueError("cada sink precisa de position")
+            not isinstance(s, dict) or not isinstance(s.get("position"), dict)
+            or not isinstance(s.get("count", False), bool) for s in sinks):
+        raise ValueError("cada sink precisa de position (e count, se houver, booleano)")
     mods = _module_list(data, "machine_modules")
     beacon_mods = _module_list(data, "beacon_modules")
     expected = data.get("expected", {})

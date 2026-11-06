@@ -55,6 +55,12 @@ class CaseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_case(valid(beacon_modules=[{"name": "x", "count": 0}]))
 
+    def test_sink_count_flag_validated(self):
+        ok = validate_case(valid(sinks=[{"position": {"x": 1, "y": 2}, "count": True}]))
+        self.assertTrue(ok.sinks[0]["count"])
+        with self.assertRaises(ValueError):
+            validate_case(valid(sinks=[{"position": {"x": 1, "y": 2}, "count": "yes"}]))
+
     def test_seed_must_be_int(self):
         with self.assertRaises(ValueError):
             validate_case(valid(seed="1"))

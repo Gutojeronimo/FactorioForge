@@ -20,6 +20,23 @@ def blueprint_string(entities) -> str:
     return "0" + base64.b64encode(zlib.compress(json.dumps(data).encode(), 9)).decode()
 
 
+# Belts and splitters use the direction of travel (unlike inserters, which point at the pickup side).
+NORTH, EAST, SOUTH = 0, 4, 8
+
+
+def belt_run(x0, y, x1, belt="transport-belt", direction=EAST):
+    """Belt tiles from x0 to x1 inclusive on row y (tile centres, step 1)."""
+    out, x = [], x0
+    while x <= x1 + 1e-9:
+        out.append({"name": belt, "position": {"x": x, "y": y}, "direction": direction})
+        x += 1
+    return out
+
+
+def splitter(x, y, direction=EAST, name="splitter"):
+    return {"name": name, "position": {"x": x, "y": y}, "direction": direction}
+
+
 def rows(lanes):
     return [0.5, -0.5, 1.5][:lanes]
 
@@ -54,6 +71,23 @@ def fluid_case(catalog):
     return out
 
 
+def splitter_case(catalog):
+    """Two basic inserters load a belt that goes through a splitter into two counted sinks."""
+    ents = belt_run(0.5, 0.5, 4.5) + [splitter(5.5, 1.0)] + belt_run(6.5, 0.5, 9.5) + belt_run(6.5, 1.5, 9.5)
+    ents += [
+        {"name": "inserter", "position": {"x": 1.5, "y": -0.5}, "direction": NORTH},
+        {"name": "inserter", "position": {"x": 2.5, "y": 1.5}, "direction": SOUTH},
+        {"name": "fast-inserter", "position": {"x": 10.5, "y": 0.5}, "direction": WEST},
+        {"name": "fast-inserter", "position": {"x": 10.5, "y": 1.5}, "direction": WEST},
+    ]
+    basic = inserter_budget(catalog["inserters"]["inserter"], {"inserter_safety": 1})["per_min"] / 60
+    out = case("08-splitter-split", ents, {"iron-plate": 2 * basic}, warmup=600, measure=3600)
+    out["feed"] = [{"item": "iron-plate", "infinite": True, "position": {"x": 1.5, "y": -1.5}},
+                   {"item": "iron-plate", "infinite": True, "position": {"x": 2.5, "y": 2.5}}]
+    out["sinks"] = [{"position": {"x": 11.5, "y": 0.5}, "count": True}, {"position": {"x": 11.5, "y": 1.5}, "count": True}]
+    return out
+
+
 def build(catalog: dict) -> list:
     gear = lambda m, **kw: predict_rate(catalog, m, "iron-gear-wheel", "iron-gear-wheel", **kw)
     speed2 = [{"name": "speed-module", "count": 2}]
@@ -74,6 +108,7 @@ def build(catalog: dict) -> list:
              {"iron-gear-wheel": min(gear("assembling-machine-1"), long_hand / 2)}, warmup=600, measure=7200, reach=2),
         # Fluid: chemical plant (fluid inputs on its north side) makes sulfur from water + petroleum gas.
         fluid_case(catalog),
+        splitter_case(catalog),
         # One beacon north of the machine (3x3, supply area 3 reaches the machine); AM2 accepts speed from beacons.
         case("06-beacon", line("assembling-machine-2", "fast-inserter", "iron-gear-wheel", 3)
              + [{"name": "beacon", "position": {"x": 0.5, "y": -3.5}}],

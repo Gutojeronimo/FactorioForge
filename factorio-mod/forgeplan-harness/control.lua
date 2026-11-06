@@ -92,10 +92,17 @@ local function place_feeds(surface)
       else add_error("infinity-chest não pôde ser criado em " .. serpent.line(feed.position)) end
     end
   end
+  storage.counted = {}
   for _, sink in pairs(case.sinks or {}) do
-    local chest = surface.create_entity{name = "infinity-chest", position = shifted(sink.position), force = "player"}
-    if chest then chest.remove_unfiltered_items = true
-    else add_error("sink não pôde ser criado em " .. serpent.line(sink.position)) end
+    if sink.count then
+      local chest = surface.create_entity{name = "steel-chest", position = shifted(sink.position), force = "player"}
+      if chest then storage.counted[#storage.counted + 1] = chest
+      else add_error("sink contado não pôde ser criado em " .. serpent.line(sink.position)) end
+    else
+      local chest = surface.create_entity{name = "infinity-chest", position = shifted(sink.position), force = "player"}
+      if chest then chest.remove_unfiltered_items = true
+      else add_error("sink não pôde ser criado em " .. serpent.line(sink.position)) end
+    end
   end
 end
 
@@ -143,6 +150,18 @@ local function sample_status(surface)
   end
 end
 
+local function counted_contents()
+  local totals = {}
+  for _, chest in pairs(storage.counted or {}) do
+    if chest.valid then
+      for _, entry in pairs(chest.get_inventory(defines.inventory.chest).get_contents()) do
+        totals[entry.name] = (totals[entry.name] or 0) + entry.count
+      end
+    end
+  end
+  return totals
+end
+
 local function snapshot(surface)
   local force = game.forces.player
   local snap = {}
@@ -159,12 +178,25 @@ local function finish(surface)
     local delta = n - ((storage.baseline or {})[name] or 0)
     if delta > 0 then measured[name] = delta / seconds end
   end
+  local sink_counts = {}
+  for name, n in pairs(counted_contents()) do
+    local delta = n - ((storage.counted_baseline or {})[name] or 0)
+    if delta > 0 then sink_counts[name] = delta / seconds end
+  end
+  local sink_detail = {}
+  for _, chest in pairs(storage.counted or {}) do
+    if chest.valid then
+      for _, entry in pairs(chest.get_inventory(defines.inventory.chest).get_contents()) do
+        sink_detail[#sink_detail + 1] = {x = chest.position.x, y = chest.position.y, item = entry.name, total = entry.count}
+      end
+    end
+  end
   local machines = {}
   for _, rec in pairs(storage.machines) do machines[#machines + 1] = rec end
   helpers.write_file("result.json", helpers.table_to_json({
     case_id = case.id, factorio_version = helpers.game_version,
     built = count_names(storage.built), rejected = storage.rejected,
-    measured = measured, machines = machines, shift = storage.shift,
+    measured = measured, sink_counts = sink_counts, sink_detail = sink_detail, machines = machines, shift = storage.shift,
     ticks_run = game.tick - storage.t0, errors = storage.errors,
   }), false)
 end
@@ -210,7 +242,7 @@ script.on_event(defines.events.on_tick, function(event)
   local elapsed = event.tick - storage.t0
   pcall(refill_power, surface)
   if elapsed % 30 == 0 and elapsed > case.ticks_warmup then pcall(sample_status, surface) end
-  if elapsed == case.ticks_warmup then storage.baseline = snapshot(surface) end
+  if elapsed == case.ticks_warmup then storage.baseline = snapshot(surface); storage.counted_baseline = counted_contents() end
   if elapsed == case.ticks_warmup + case.ticks_measure and not storage.finished then
     storage.finished = true
     local ok, err = pcall(finish, surface)

@@ -21,6 +21,7 @@ Janela de medição: 300 ticks de aquecimento + 1200 ticks medidos. Produção l
 - **Direção do inserter** no blueprint: aponta para o lado de coleta (ver `harness/LAUNCH.md`). Conferir o exportador do ForgePlan.
 | 06 montadora 2 + 1 beacon com 2 módulos de velocidade, 3 fileiras | 2,400 | 2,400 | passa |
 | 07 fábrica química: sulfur de água + gás de petróleo (infinity-pipe) | 2,000 | 2,000 | passa |
+| 08 dois inserters básicos → esteira → splitter → 2 sinks contados | 1,667 | 1,717 | passa (+3%); divisão 56 × 57 itens |
 
 ## Inserter: causa provável e correção proposta
 

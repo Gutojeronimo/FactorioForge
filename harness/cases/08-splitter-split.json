@@ -1,0 +1,50 @@
+{
+ "id": "08-splitter-split",
+ "blueprint_string": "0eNqdld1qxCAQhV9l8bpZotEk7quUpSTtFITEBHXLLiHv3un2N2CD440MM+P5Bg6jC+uHC8zO2MBOh4WZACMGf7IPB/YGzpvJYl7VQisppNY1l43AGthgggGPxceF2W6Ej+vBddbPkwtFD8NdY5489t1FFnbFszwqTN8+oxXDF+Pg+atFfivfnuxl7MFhjmMTicCpBEElCCqhohIqKkFSCZJKUBuCnwcTAhZi2upHmx/LFO2aOn1Nnb6hEhoqoaUSWipBUwmavGtlvhE8EcHznUhFiHwrUhFVvhepiO1KG+vB/bdwv09eEXG6jKmrdHWxN3obE9/u82vnQ7E//+6vwEWM0eQzeCqjXc/r+g48wS/F",
+ "ticks_warmup": 600,
+ "ticks_measure": 3600,
+ "seed": 1,
+ "feed": [
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 1.5,
+    "y": -1.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 2.5,
+    "y": 2.5
+   }
+  }
+ ],
+ "sinks": [
+  {
+   "position": {
+    "x": 11.5,
+    "y": 0.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 11.5,
+    "y": 1.5
+   },
+   "count": true
+  }
+ ],
+ "machine_modules": [],
+ "beacon_modules": [],
+ "expected": {
+  "iron-plate": 1.6666666666666667
+ },
+ "tolerance": {
+  "abs": 0.0,
+  "rel": 0.05
+ }
+}

@@ -17,9 +17,9 @@ def calibrate(exe: Path = FACTORIO, only=None) -> list:
         if only and case.id not in only:
             continue
         result = run_case(case, exe, REPO / ".runtime" / "harness")
-        verdict = compare(case.expected, result.get("measured", {}), case.tolerance)
+        verdict = compare(case.expected, {**result.get("measured", {}), **result.get("sink_counts", {})}, case.tolerance)
         report.append({"case": case.id, "verdict": verdict["verdict"], "items": verdict["items"],
-                       "errors": result.get("errors", []), "rejected": result.get("rejected", []),
+                       "errors": result.get("errors", []), "sink_detail": result.get("sink_detail", []), "rejected": result.get("rejected", []),
                        "factorio_version": result.get("factorio_version")})
         print(case.id, verdict["verdict"], {k: (round(v["expected"], 4), round(v["measured"], 4)) for k, v in verdict["items"].items()})
     out = REPO / ".runtime" / "harness" / "report.json"
