@@ -9,7 +9,8 @@ Janela de medição: 300 ticks de aquecimento + 1200 ticks medidos. Produção l
 | 01 montadora 1, engrenagem, fast inserters | 1,000 | 1,000 | passa |
 | 02 montadora 2 + 2 módulos de velocidade, 3 fileiras | 2,100 | 2,100 | passa |
 | 03 montadora 2 + 2 módulos de produtividade, 3 fileiras | 1,458 | 1,450 | passa (−0,5%) |
-| 04 montadora 1, inserter **básico** limitando a entrada | 0,341 | 0,450 | **falha** (+32%) |
+| 04 montadora 1, inserter **básico** limitando a entrada (janela de 7200 ticks) | 0,341 | 0,425 | **falha** (+25%) |
+| 05 montadora 1, inserter **long-handed** limitando a entrada (7200 ticks) | 0,484 | 0,625 | **falha** (+29%) |
 
 ## Leitura
 
@@ -17,6 +18,19 @@ Janela de medição: 300 ticks de aquecimento + 1200 ticks medidos. Produção l
 - **Inserter:** `inserter_budget` é conservador. O inserter básico entregou cerca de 0,90 placa/s contra 0,68 previsto. O erro é a favor da segurança (o modelo subestima), mas é grande demais para calcular "100 itens/s" sem sobra de equipamento. Calibrar `ticks` e a constante de coleta é a próxima ação.
 - **Armadilha descoberta:** com uma única fileira de fast inserters, os casos 02 e 03 mediram 1,25 e 1,35 itens/s porque a **entrada** (placas) era o gargalo, não a máquina. O harness expõe isso; o planejador precisa sempre cruzar máquina × inserter × esteira.
 - **Direção do inserter** no blueprint: aponta para o lado de coleta (ver `harness/LAUNCH.md`). Conferir o exportador do ForgePlan.
+
+## Inserter: causa provável e correção proposta
+
+A janela curta do caso 04 (1200 ticks) deu 0,450; com 7200 ticks o valor estabiliza em 0,425 engrenagem/s (0,85 placa/s), o que coincide com o valor conhecido do inserter básico (≈0,83/s). O long-handed mede 1,25 placa/s.
+
+`inserter_budget` soma o tempo de rotação e o de extensão: `ticks = 2·ceil(0,5/rotation_speed) + 2·ceil(raio/extension_speed) + 4`. No jogo os dois movimentos ocorrem ao mesmo tempo. Com `ticks = 2·ceil(0,5/rotation_speed)` os resultados são:
+
+| Inserter | Fórmula atual (placas/s) | Fórmula proposta | Medido |
+|---|---:|---:|---:|
+| básico | 0,68 | 0,83 | 0,85 |
+| long-handed | 0,97 | 1,20 | 1,25 |
+
+A mudança está em `production_math.inserter_budget` e altera os planos gerados (menos conservadores), então **não foi aplicada**: depende de decisão sua e de ajustar os testes que fixam os valores atuais.
 
 ## Não coberto ainda
 

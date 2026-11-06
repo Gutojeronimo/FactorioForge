@@ -1,0 +1,33 @@
+{
+ "id": "05-long-handed-limited",
+ "blueprint_string": "0eNqdjVELgkAQhP9K3HMX3aWG/ZWIOHXRBW+Vu7MS8b+3WlGEL/WyDDOz8w0iqztoHVIQh9UgMIBl8eGuV+ICzmND7MeJTuNIR2maqGivOQMKGBA8h8dBkLEwvRvvwWY1UimtySskkGpaahvP7XlqEDe+203Mdv9QI0sHObbzBrqGZAnGyWsFUIsXrD9TZzNw3FH88YbWDeMqQwUUEsmDC1xagkr1TS2Quc+O0gsk/R9J/wzajadxvAPgy32b",
+ "ticks_warmup": 600,
+ "ticks_measure": 7200,
+ "seed": 1,
+ "feed": [
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -3.5,
+    "y": 0.5
+   }
+  }
+ ],
+ "sinks": [
+  {
+   "position": {
+    "x": 4.5,
+    "y": 0.5
+   }
+  }
+ ],
+ "machine_modules": [],
+ "expected": {
+  "iron-gear-wheel": 0.48383333333333334
+ },
+ "tolerance": {
+  "abs": 0.0,
+  "rel": 0.05
+ }
+}

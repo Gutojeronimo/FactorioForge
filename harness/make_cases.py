@@ -24,7 +24,7 @@ def rows(lanes):
     return [0.5, -0.5, 1.5][:lanes]
 
 
-def line(machine, inserter, recipe, lanes=1):
+def line(machine, inserter, recipe, lanes=1, reach=1):
     """chest -> inserter -> machine -> inserter -> sink, `lanes` parallel rows (x grows eastward)."""
     ents = [{"name": machine, "position": {"x": 0.5, "y": 0.5}, "recipe": recipe}]
     for y in rows(lanes):
@@ -33,11 +33,11 @@ def line(machine, inserter, recipe, lanes=1):
     return ents
 
 
-def case(case_id, entities, expected, modules=(), lanes=1, warmup=300, measure=1200):
+def case(case_id, entities, expected, modules=(), lanes=1, warmup=300, measure=1200, reach=1):
     return {"id": case_id, "blueprint_string": blueprint_string(entities), "ticks_warmup": warmup,
             "ticks_measure": measure, "seed": 1,
-            "feed": [{"item": "iron-plate", "infinite": True, "position": {"x": -2.5, "y": y}} for y in rows(lanes)],
-            "sinks": [{"position": {"x": 3.5, "y": y}} for y in rows(lanes)], "machine_modules": list(modules),
+            "feed": [{"item": "iron-plate", "infinite": True, "position": {"x": -1.5 - reach, "y": y}} for y in rows(lanes)],
+            "sinks": [{"position": {"x": 2.5 + reach, "y": y}} for y in rows(lanes)], "machine_modules": list(modules),
             "expected": expected, "tolerance": {"abs": 0.0, "rel": 0.05}}
 
 
@@ -46,6 +46,7 @@ def build(catalog: dict) -> list:
     speed2 = [{"name": "speed-module", "count": 2}]
     prod2 = [{"name": "productivity-module", "count": 2}]
     basic = inserter_budget(catalog["inserters"]["inserter"], {"inserter_safety": 1})["per_min"] / 60
+    long_hand = inserter_budget(catalog["inserters"]["long-handed-inserter"], {"inserter_safety": 1})["per_min"] / 60
     out = [
         case("01-single-assembler", line("assembling-machine-1", "fast-inserter", "iron-gear-wheel"),
              {"iron-gear-wheel": gear("assembling-machine-1")}),
@@ -55,7 +56,9 @@ def build(catalog: dict) -> list:
              {"iron-gear-wheel": gear("assembling-machine-2", modules=prod2)}, prod2, 3),
         # Basic inserter feeds 2 plates per gear: the inserter, not the machine, limits the rate.
         case("04-inserter-limited", line("assembling-machine-1", "inserter", "iron-gear-wheel"),
-             {"iron-gear-wheel": min(gear("assembling-machine-1"), basic / 2)}),
+             {"iron-gear-wheel": min(gear("assembling-machine-1"), basic / 2)}, warmup=600, measure=7200),
+        case("05-long-handed-limited", line("assembling-machine-1", "long-handed-inserter", "iron-gear-wheel", reach=2),
+             {"iron-gear-wheel": min(gear("assembling-machine-1"), long_hand / 2)}, warmup=600, measure=7200, reach=2),
     ]
     return out
 
