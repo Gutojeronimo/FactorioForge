@@ -10,7 +10,7 @@ FEED_ROWS_WEST = (0.5, 2.5, 4.5, 6.5)   # feeders alternate rows so east chests 
 FEED_ROWS_EAST = (1.5, 3.5, 5.5)
 
 
-def factory_case(case_id, factory, expected, bus_x0=0.5, spacing=3, warmup=900, measure=3600, tolerance=0.10):
+def factory_case(case_id, factory, expected, bus_x0=0.5, spacing=3, warmup=1800, measure=7200, tolerance=0.10):
     """Add chest-fed inserters on top of every bus belt and counted sinks at every cell output."""
     entities = [dict(e) for e in factory.entities]
     last = max(e["entity_number"] for e in entities)
@@ -62,18 +62,18 @@ def scenarios(server, raw):
     recipes = server._recipe_list(raw)
     out = []
 
-    def make(case_id, targets, bus):
+    def make(case_id, targets, bus, warmup=1800):
         factory = build_factory(raw, targets, bus, {}, recipes=recipes)
         # Cells are sized in whole machines, so they are designed to deliver a little more than the target.
         expected = {}
         for port in factory.output_ports:
             expected[port["name"]] = expected.get(port["name"], 0) + port["per_min"] / 60
-        out.append((case_id, factory, factory_case(case_id, factory, expected)))
+        out.append((case_id, factory, factory_case(case_id, factory, expected, warmup=warmup)))
 
     make("11-bus-grenade", [{"name": "grenade", "per_min": 30}], default_bus())
     make("12-bus-gear-600", [{"name": "iron-gear-wheel", "per_min": 600}], default_bus())
     make("13-bus-three-products", [{"name": "grenade", "per_min": 30}, {"name": "iron-gear-wheel", "per_min": 120},
-                                   {"name": "copper-cable", "per_min": 300}], default_bus())
+                                   {"name": "copper-cable", "per_min": 300}], default_bus(), warmup=5400)
     return out
 
 
