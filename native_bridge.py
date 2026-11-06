@@ -1,5 +1,6 @@
 """Private JSON-lines process used by the native Windows application."""
 import json
+import re
 import sys
 import traceback
 
@@ -128,6 +129,33 @@ def command(name, payload):
             compatible = [name for name, module in raw.get("module", {}).items() if module_allowed(module, proto, recipe, recipe_name)]
             result.append(dict(machine, icon=art.icon(machine["name"]), module_slots=int(proto.get("module_slots", proto.get("module_specification", {}).get("module_slots", 0))), allowed_effects=proto.get("allowed_effects", []), allowed_module_categories=proto.get("allowed_module_categories", []), compatible_modules=compatible, fuel_categories=source.get("fuel_categories") or [source.get("fuel_category", "chemical")] if source.get("type") == "burner" else []))
         return result
+    if name == "products":
+        raw = server._catalog()
+        if raw is None:
+            return {"groups": [], "products": []}
+        from ui_catalog import group_products
+        art = get_graphics()
+        recipes = server._recipe_list(raw)
+        protos = server._items(raw, "recipe")
+        owner = lambda path: (re.match(r"__([^/]+)__/", path) or [None, ""])[1]
+
+        def origin(recipe_name):
+            proto = protos.get(recipe_name) or {}
+            path = proto.get("icon") or next((i.get("icon") for i in proto.get("icons") or [] if isinstance(i, dict) and i.get("icon")), "")
+            if not path:
+                main = next((p["name"] for p in (proto.get("results") or []) if isinstance(p, dict) and p.get("name")), proto.get("result", ""))
+                for kind in ("item", "item-with-entity-data", "tool", "ammo", "module", "capsule", "gun", "armor", "fluid"):
+                    item = server._items(raw, kind).get(main)
+                    if item:
+                        path = item.get("icon") or next((i.get("icon") for i in item.get("icons") or [] if isinstance(i, dict) and i.get("icon")), "")
+                        break
+            return owner(str(path))
+
+        products = group_products(recipes, icon=art.icon, origin=origin)
+        groups = {}
+        for product in products:
+            group = groups.setdefault(product["group"], {"name": product["group"], "label": product["group_label"], "order": product["group_order"], "icon": product["icon"]})
+        return {"groups": sorted(groups.values(), key=lambda g: (g["order"].casefold(), g["label"].casefold())), "products": products}
     if name == "generate":
         result = server._generate(payload)
         art = get_graphics()
