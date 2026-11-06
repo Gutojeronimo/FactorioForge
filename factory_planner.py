@@ -140,10 +140,12 @@ def _build_single(raw, plan, requested, suggested_columns=0, force_suggested_col
             budget = inserter_budget(raw['inserter'][selected['output_inserter']], cfg, belt_speed)
             output_inserter_budget = budget['per_min']
             out_need = item_output / plan['machine_count']
-            if out_need > usable_capacity:
-                raise ValueError(f"A saída exige {out_need:.1f}/min por máquina, acima da capacidade útil da esteira ({usable_capacity:.1f}/min, com margem de segurança).")
+            # Every output inserter drops from the machine side, so only the far lane of the output belt fills.
+            output_lane_capacity = usable_capacity / 2
+            if out_need > output_lane_capacity:
+                raise ValueError(f"A saída exige {out_need:.1f}/min por máquina, acima da capacidade útil de uma faixa da esteira de saída ({output_lane_capacity:.1f}/min, com margem de segurança).")
             output_arm_count = math.ceil(out_need / max(.001, budget['per_min']))
-            output_limit = math.floor(usable_capacity / max(.001, out_need))
+            output_limit = math.floor(output_lane_capacity / max(.001, out_need))
     fluid_limit = plan['machine_count']
     pipe_budget = float(cfg.get('pipe_capacity_per_min', 12000))
     for pin in fluid_pins:

@@ -207,6 +207,16 @@ class LayoutCandidateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "mais de duas esteiras"):
             build_factory(raw, plan, config)
 
+    def test_output_row_is_limited_by_one_lane(self):
+        # Output inserters all drop from the same side, so the output belt only fills its far lane.
+        raw, plan, config = self.fixture()
+        plan["ingredients"] = [{"name": "a", "type": "item", "amount": 1, "per_min": 50}, {"name": "b", "type": "item", "amount": 1, "per_min": 50}]
+        plan["products"] = [{"name": "c", "type": "item", "amount": 1, "per_min": 700}]
+        plan["output_per_machine"] = 100
+        _, _, _, layout = build_factory(raw, plan, config)
+        self.assertLessEqual(layout["row_capacity"], 4)  # lane = 828/2 = 414/min → 4 machines of 100/min
+        self.assertGreaterEqual(layout["rows"], 2)
+
     def test_vanilla_belt_capacity_respects_safety_margin(self):
         total, usable = belt_capacity(0.03125, .08)
 
