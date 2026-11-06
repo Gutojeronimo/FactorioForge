@@ -69,7 +69,7 @@ As requisições usam contexto de 4096 tokens, resposta estruturada curta e thin
 
 ## Desenvolvimento
 
-`build.ps1` compila a interface em `app/`. O SDK .NET 10 é necessário para recompilar; o executável usa apenas WPF e bibliotecas padrão. O motor usa apenas a biblioteca padrão do Python.
+`build.ps1` compila a interface em `app-next/`; `start.ps1` e `ForgePlan.cmd` abrem `app-next/` e, se ele não existir, `app/`. O SDK .NET 10 é necessário para recompilar; o executável usa apenas WPF e bibliotecas padrão. O motor usa apenas a biblioteca padrão do Python.
 
 - `desktop/`: interface e renderizador Windows.
 - `native_bridge.py`: protocolo privado entre a interface e o motor.
@@ -92,3 +92,12 @@ A aba **Balanceadores** gera módulos retos independentes para essas três topol
 `dependency_planner.py` calcula uma estimativa recursiva a partir das receitas do perfil carregado e mostra receitas/ciclos, entradas item/fluid e coprodutos na prévia. A receita escolhida para o produto final é respeitada; alternativas intermediárias e ciclos geram avisos. **Gerar módulos da cadeia em Blueprint Book** cria um blueprint separado para cada etapa calculada e preserva resultados parciais quando uma etapa falha. Cada módulo expõe os insumos na própria porta; conecte-os no jogo. O livro não é uma fábrica integrada, não inclui extração de recursos e ainda não foi validado em operação no Factorio.
 
 **Gerar cadeia conjunta · Blueprint Book** usa um ledger compartilhado de coprodutos para várias metas, estima máquinas e entradas externas e gera um blueprint físico por receita utilizada. Cada bloco passa pela validação estática existente e o livro passa pela validação de serialização. A escolha de receitas continua heurística, não usa LP, e os blocos permanecem independentes: conecte as portas entre fábricas no jogo. Fluidos continuam como entradas externas; módulos, pesquisa, qualidade e beacons não entram no balanço. Não há validação operacional em partida.
+
+
+## Barramento
+
+A aba **Barramento** define os itens que viajam no barramento (padrão: chapa de ferro, chapa de cobre, aço, pedra e carvão; o atalho "+ Circuitos" acrescenta circuitos verde, vermelho e azul) e o máximo de esteiras de cada um. **Gerar fábrica com barramento** usa a fila de fábricas independentes como metas: o planejador trata os itens do barramento como entrada externa, gera uma célula por receita, calcula as faixas (um item por esteira, ou dois itens, um por lane, quando a célula os recebe na mesma esteira) e liga cada entrada por um tap com splitter e undergrounds. Cada entrada leva um combinador constante com o item, e cada faixa tem um combinador com item e capacidade. O código está em `bus/`; os produtores dos itens do barramento ainda não são gerados.
+
+## Harness de validação no jogo
+
+`harness/` constrói blueprints num mapa descartável do Factorio (instância isolada em `.runtime/harness/`, sem tocar em saves nem em `mods`), mede a produção e compara com a previsão: `python -m harness.calibrate`. Os casos estão em `harness/cases/`; o relatório e os desvios medidos, em `docs/project/HARNESS-CALIBRATION.md` e `docs/project/BUS-CALIBRATION.md`. Veja `harness/LAUNCH.md` para o protocolo.

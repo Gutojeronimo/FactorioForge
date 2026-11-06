@@ -3,6 +3,10 @@
 **Revisão do código:** 2026-11-05  
 **Fonte de verdade:** checkout local atual. A análise desta tarefa não executou Factorio nem build WPF; a suíte unitária foi executada e passou com 123 testes.
 
+## Calibração no jogo (2026-11-06)
+
+- [Harness no jogo](HARNESS-CALIBRATION.md) · [Barramento](BUS-CALIBRATION.md)
+
 ## Entrada principal
 
 - [Relatório executivo completo](FACTORIO-FORGEPLAN-EXECUTIVE-REPORT.md)

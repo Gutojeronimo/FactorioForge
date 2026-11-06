@@ -21,6 +21,13 @@
 | K13 | P2 | **Lacuna de teste** | Validação de nomes/containment existe e há testes para caminhos absolutos/POSIX/Windows, mas não há fuzzing de mod-list/ZIPs nem testes completos de sync-mods. | Fuzzar parser e ZIP com input em diretório temporário; testar sync só em ambiente descartável. Aceite: traversal, links e ZIP inválido falham antes de leitura fora do root. [Validação de nome](../../server.py#L187), [teste](../../tests/test_planning_quality.py#L72) |
 | K14 | P3 | **Limitação de distribuição** | Não foram encontrados metadados Python (`pyproject.toml`, `requirements.txt`, `setup.py`). O app depende de Python/Factorio instalados e de .NET Desktop Runtime 10. | Definir ambiente reproduzível e empacotamento, sem incluir assets de jogo/mods proprietários. Aceite: instalação limpa diagnostica dependências ausentes e seleciona runtime corretamente. |
 
+## Atualização de 2026-11-06
+
+- **K01:** parcialmente fechado. O harness (`harness/`) importa, constrói e mede blueprints no Factorio 2.1.24 (13 casos, vanilla e com a modlist de 226 mods num caso). Máquinas, módulos, beacon, inserters, fluido, splitter, underground e fábricas completas com barramento batem com a previsão em até 10%. Esteira saturada por lane, mais de um beacon e redes de fluido seguem sem medição.
+- **K09:** resolvido. `build.ps1`, `start.ps1` e `ForgePlan.cmd` usam `app-next/` (com `app/` como reserva).
+- O modo automático de módulos escolhia módulos ocultos de mods (+12500% de velocidade); agora os ignora.
+- O ciclo do inserter (`inserter_budget`) foi calibrado no jogo: usa o maior entre rotação e extensão, sem o acréscimo de 4 ticks.
+
 ## Não é defeito confirmado
 
 - A falta de `LogisticSections::save` reproduzido com uma blueprint exata impede atribuição causal ao gerador. O incidente histórico permanece uma hipótese de compatibilidade para investigar, não um bug do ForgePlan confirmado.
