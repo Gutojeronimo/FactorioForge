@@ -29,6 +29,7 @@ DUMP_FILE = USER_DATA / "script-output" / "data-raw-dump.json"
 PROFILE_FILE = RUNTIME / "catalog-profile.json"
 SETTINGS_FILE = RUNTIME / "settings.json"
 DEFAULT_OLLAMA = "http://127.0.0.1:11434"
+LOGISTICS_HEADROOM = 1.1
 DEFAULT_EXCLUDED_SUBPRODUCTS = ("iron-plate", "copper-plate")
 MAX_BODY = 4 * 1024 * 1024
 STATE_LOCK = threading.RLock()
@@ -492,22 +493,35 @@ def _category_names(recipe: dict) -> list[str]:
     return [str(category)]
 
 
+SUPPORTED_ENERGY = {"electric", "burner", "void"}
+BASE_GAME_PREFIXES = ("__base__", "__space-age__", "__quality__", "__elevated-rails__")
+
+
 def _machine_choices(raw: dict, recipe: dict) -> list[dict]:
+    """Compatible machines: base-game first, then mods, then machines whose energy the generator can't wire."""
     categories = set(_category_names(recipe))
     choices = []
     for kind in ("assembling-machine", "furnace", "rocket-silo"):
         for name, machine in _items(raw, kind).items():
+            if machine.get("hidden") is True:
+                continue
             supported = machine.get("crafting_categories") or []
             if isinstance(supported, str):
                 supported = [supported]
             if categories.intersection(str(c) for c in supported):
+                energy = str((machine.get("energy_source") or {}).get("type", "electric"))
+                ok = energy in SUPPORTED_ENERGY
                 choices.append({
                     "name": name,
                     "type": kind,
                     "speed": float(machine.get("crafting_speed", 1) or 1),
                     "categories": list(supported),
+                    "energy": energy,
+                    "supported": ok,
+                    "reason": "" if ok else "energia por %s ainda não é suportada pelo gerador" % energy,
+                    "base_game": str(machine.get("icon", "")).startswith(BASE_GAME_PREFIXES),
                 })
-    return sorted(choices, key=lambda x: (x["speed"], x["name"]), reverse=True)
+    return sorted(choices, key=lambda x: (not x["supported"], not x["base_game"], -x["speed"], x["name"]))
 
 
 def _recipe_list(raw: dict) -> list[dict]:
@@ -1351,6 +1365,8 @@ def _generate(payload: dict) -> dict:
     selected = next((m for m in choices if m["name"] == machine_name), choices[0] if choices else None)
     if selected is None:
         raise ValueError("Não encontrei máquina compatível com a categoria desta receita.")
+    if not selected.get("supported", True):
+        raise ValueError("A máquina %s não pode ser usada: %s. Escolha outra máquina." % (selected["name"], selected["reason"]))
 
     energy = max(0.001, float(recipe.get("energy_required", 0.5) or 0.5))
     machine_proto = _items(raw, selected["type"])[selected["name"]]
@@ -1427,8 +1443,12 @@ def _generate(payload: dict) -> dict:
         return _generate_modular(payload, machine_count, output_per_machine)
     if machine_count > 200:
         raise ValueError("A meta exige mais de 200 máquinas nesta prévia. Reduza a meta ou divida a linha.")
-    actual_output = output_per_machine * machine_count
+    # Machines far faster than the target (modded "ultimate" assemblers) would otherwise get belts and
+    # inserters sized for their full capacity; the line only has to carry the target plus headroom.
     cycles_per_min = speed * 60 / energy * machine_count
+    if amount_per_craft > 0:
+        cycles_per_min = min(cycles_per_min, target / amount_per_craft * LOGISTICS_HEADROOM)
+    actual_output = amount_per_craft * cycles_per_min
     ingredients = _recipe_ingredients(recipe)
     for ingredient in ingredients:
         ingredient["per_min"] = ingredient["amount"] * cycles_per_min

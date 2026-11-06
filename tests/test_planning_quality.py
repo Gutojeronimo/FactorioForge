@@ -176,6 +176,22 @@ class ModularGenerationTests(unittest.TestCase):
             "constant-combinator": {"constant-combinator": tile},
         }
 
+    def test_logistics_follow_the_target_when_one_machine_far_exceeds_it(self):
+        raw = self.raw_fixture()
+        raw["recipe"]["widget"]["ingredients"] = [{"type": "item", "name": "plate", "amount": 2}]
+        raw["item"]["plate"] = {"name": "plate"}
+        raw["assembling-machine"]["machine"]["crafting_speed"] = 240  # modded "ultimate" assembler
+        payload = {"recipe_name": "widget", "product_name": "widget", "target_per_min": 10,
+                   "factory": {"mode": "machines", "modules_auto": False, "pole": "pole"}}
+        with patch("server._catalog", return_value=raw), patch("server._discover_exe", return_value=None),                 patch("server._factorio_version", return_value="2.1.0"):
+            result = server._generate(payload)
+        plan = result["plan"]
+        self.assertEqual(plan["machine_count"], 1)
+        # 10 widgets/min need 20 plates/min; logistics get at most 10% headroom, not the machine's 28 800/min
+        self.assertLessEqual(plan["ingredients"][0]["per_min"], 22 + 1e-6)
+        self.assertGreaterEqual(plan["ingredients"][0]["per_min"], 20 - 1e-6)
+        self.assertLessEqual(plan["actual_per_min"], 11 + 1e-6)
+
     def test_megabase_profile_partitions_over_200_machines_into_book_blocks(self):
         raw = self.raw_fixture()
         payload = {"recipe_name": "widget", "product_name": "widget", "target_per_min": 12001,
