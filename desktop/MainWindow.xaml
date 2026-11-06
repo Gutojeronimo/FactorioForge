@@ -91,6 +91,7 @@
           </MenuItem>
           <MenuItem Header="A_juda">
             <MenuItem Header="Limitações conhecidas…" Click="Help_Click"/>
+            <MenuItem Header="Sobre o ForgePlan…" Click="About_Click"/>
           </MenuItem>
         </Menu>
       </DockPanel>

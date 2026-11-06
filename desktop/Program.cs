@@ -491,6 +491,8 @@ sealed partial class MainWindow : Window
     void ZoomOut_Click(object sender, RoutedEventArgs e) => preview.ChangeZoom(-.2);
     void ZoomIn_Click(object sender, RoutedEventArgs e) => preview.ChangeZoom(.2);
     void Fit_Click(object sender, RoutedEventArgs e) => preview.Fit();
+    void About_Click(object sender, RoutedEventArgs e) =>
+        GameDialog.Show(this, "Sobre o ForgePlan", "ForgePlan · Factorio Blueprint Studio\nVersão " + (typeof(MainWindow).Assembly.GetName().Version?.ToString(3) ?? "?") + " · .NET " + Environment.Version + "\nPerfil: " + profile.Text + "\nPasta: " + rootFolder);
     void Help_Click(object sender, RoutedEventArgs e)
     {
         var docs = Path.Combine(rootFolder, "docs", "project");

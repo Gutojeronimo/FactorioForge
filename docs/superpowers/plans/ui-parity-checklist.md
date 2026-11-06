@@ -85,9 +85,9 @@ Destinos: **Arq** / **Perfil** / **Gerar** / **Exp** / **Ajuda** (menus), **Prod
 | Sair (não existe hoje) | novo | local (`Close`) | Arq | [x] |
 | `.runtime/last-factory.json`: leitura em `Initialize` (P:240-249) e gravação em `SaveLastFactory` (F:363), chamado em `GenerateView` e `Closed`; só grava se há receita | persistência | local; restaura com `restoreEquipment: !hasEquipmentProfile` e, se não havia perfil de equipamento, grava um | Sistema | [x] |
 | `.runtime/equipment-profile.json`: leitura `LoadEquipmentProfile` (F:341) em `Initialize`, gravação pelo botão "Salvar equipamento padrão" | persistência | local {version, equipment, preferred_machine} | Sistema | [x] |
-| `.runtime/bus-config.json`: `LoadBusConfig` (B:81) ao construir a aba, `SaveBusConfig` (B:98) a cada alteração e em GenerateBus | persistência | local {belt, items[{name,max_belts}]}; erro de leitura limpa a lista; erro de escrita é ignorado | Sistema | [ ] |
-| Configurações do motor (exe, mods, save, versões, ollama_url) | persistência | `settings` (gravado pelo Python) e lido de volta em `status` | Sistema | [ ] |
-| Perfis de mods salvos | persistência | não há perfis nomeados no código atual; "perfil" = mods do save ou do `mod-list.json` carregados via `load` | Perfil | [ ] |
+| `.runtime/bus-config.json`: `LoadBusConfig` (B:81) ao construir a aba, `SaveBusConfig` (B:98) a cada alteração e em GenerateBus | persistência | local {belt, items[{name,max_belts}]}; erro de leitura limpa a lista; erro de escrita é ignorado | Sistema | [x] |
+| Configurações do motor (exe, mods, save, versões, ollama_url) | persistência | `settings` (gravado pelo Python) e lido de volta em `status` | Sistema | [x] |
+| Perfis de mods salvos | persistência | não há perfis nomeados no código atual; "perfil" = mods do save ou do `mod-list.json` carregados via `load` | Perfil | [x] n/a: não existem perfis nomeados; "Perfil" = exe, mods, save e `load` (Task 5) |
 
 ## 5. Menu Gerar, geração e cancelamento
 
@@ -121,46 +121,46 @@ Destinos: **Arq** / **Perfil** / **Gerar** / **Exp** / **Ajuda** (menus), **Prod
 
 | Controle atual | Tipo | Comando + payload | Destino | Paridade |
 |---|---|---|---|---|
-| `ollamaUrl` TextBox, padrão `http://127.0.0.1:11434` (P:152,197) | campo | `ollama` {url}; `settings.ollama_url` | IA | [ ] |
-| Botão "Atualizar modelos" (P:197) → `RefreshOllama(true)` | botão | `settings` (ver §1) e depois `ollama` {url} → {connected, models[], url, error} | IA | [ ] |
-| `timeoutBox` "Tempo máximo (segundos)", 120, 15-600 (F:33,198) | campo | `ai_timeout` em generate/batch | IA | [ ] |
-| `allowFallback` CheckBox "Usar perfil configurado se a IA falhar", marcado (F:35,198) | checkbox | `ai_fallback` | IA | [ ] |
-| `aiInstructions` TextBox multilinha (F:34,199) | campo | `ai_instructions` | IA | [ ] |
-| Texto explicativo da IA (P:200) | rótulo | local | IA | [ ] |
-| `ollamaState` TextBlock (P:157,202,327-329), tooltip com URL ou erro | rótulo | local (verde conectado, laranja falha) | IA e Status | [ ] |
-| `models` ListBox (P:161,202,320-326): "Layout automático" (tag "") + modelos | lista | `model` em generate/batch | IA | [ ] |
-| `ollamaTimer` 20 s (P:164,222): chama `RefreshOllama(false)` se não estiver `busy`; iniciado no fim de `Initialize`, parado em `Closed` | timer | `ollama` {url} | Sistema | [ ] |
-| `refreshingOllama` evita reentrância (P:170,314) | estado | local | Sistema | [ ] |
+| `ollamaUrl` TextBox, padrão `http://127.0.0.1:11434` (P:152,197) | campo | `ollama` {url}; `settings.ollama_url` | IA | [x] |
+| Botão "Atualizar modelos" (P:197) → `RefreshOllama(true)` | botão | `settings` (ver §1) e depois `ollama` {url} → {connected, models[], url, error} | IA | [x] |
+| `timeoutBox` "Tempo máximo (segundos)", 120, 15-600 (F:33,198) | campo | `ai_timeout` em generate/batch | IA | [x] |
+| `allowFallback` CheckBox "Usar perfil configurado se a IA falhar", marcado (F:35,198) | checkbox | `ai_fallback` | IA | [x] |
+| `aiInstructions` TextBox multilinha (F:34,199) | campo | `ai_instructions` | IA | [x] |
+| Texto explicativo da IA (P:200) | rótulo | local | IA | [x] |
+| `ollamaState` TextBlock (P:157,202,327-329), tooltip com URL ou erro | rótulo | local (verde conectado, laranja falha) | IA e Status | [x] |
+| `models` ListBox (P:161,202,320-326): "Layout automático" (tag "") + modelos | lista | `model` em generate/batch | IA | [x] |
+| `ollamaTimer` 20 s (P:164,222): chama `RefreshOllama(false)` se não estiver `busy`; iniciado no fim de `Initialize`, parado em `Closed` | timer | `ollama` {url} | Sistema | [x] |
+| `refreshingOllama` evita reentrância (P:170,314) | estado | local | Sistema | [x] |
 
 ## 8. Aba Barramento (B)
 
 | Controle atual | Tipo | Comando + payload | Destino | Paridade |
 |---|---|---|---|---|
-| `busItems` ListBox "<item> · até N esteira(s)" (B:12,26,45-49) | lista | local | Barr | [ ] |
-| Botão "Remover item selecionado" (B:27,59) | botão | local (salva `bus-config.json`) | Barr | [ ] |
-| `busItemName` (B:13,28) nome interno | campo | local | Barr | [ ] |
-| `busItemMax` padrão 4, inteiro 1-64 (B:13,29) | campo | `bus.items[].max_belts` | Barr | [ ] |
-| Botão "Adicionar item" (B:30,51); rejeita vazio, fora de 1-64 ou duplicado | botão | local (salva e limpa `busItemName`) | Barr | [ ] |
-| Botão "Básico" (B:32,65): substitui a lista | botão | `bus_defaults` → `basic[]`, cada item entra com máx. 4 | Barr | [ ] |
-| Botão "+ Circuitos" (B:33,65): acrescenta | botão | `bus_defaults` → `circuits[]` | Barr | [ ] |
-| `busBeltName` padrão `transport-belt` (B:13,35) | campo | `bus.belt` | Barr | [ ] |
-| Botão "Gerar fábrica com barramento" | botão | `generate_bus` (ver §5) | Barr | [ ] |
-| `busResult` (B:14,140-158): "Faixas do barramento" (item_a, item_b, load_a, load_b, capacity_per_min), folgas `free_per_min`, avisos `warnings` | resultado | consome `lanes`, `free_per_min`, `warnings`, `entity_count`, `blueprints[]` | Barr | [ ] |
-| Botão "Copiar blueprint da fábrica" (B:157) | botão | local (`Clipboard`, `busBlueprint` = 1º de `blueprints`) | Barr / Exp | [ ] |
-| Texto de erro em `busResult` quando falha (B:136) | mensagem | local | Barr | [ ] |
+| `busItems` ListBox "<item> · até N esteira(s)" (B:12,26,45-49) | lista | local | Barr | [x] |
+| Botão "Remover item selecionado" (B:27,59) | botão | local (salva `bus-config.json`) | Barr | [x] |
+| `busItemName` (B:13,28) nome interno | campo | local | Barr | [x] |
+| `busItemMax` padrão 4, inteiro 1-64 (B:13,29) | campo | `bus.items[].max_belts` | Barr | [x] |
+| Botão "Adicionar item" (B:30,51); rejeita vazio, fora de 1-64 ou duplicado | botão | local (salva e limpa `busItemName`) | Barr | [x] |
+| Botão "Básico" (B:32,65): substitui a lista | botão | `bus_defaults` → `basic[]`, cada item entra com máx. 4 | Barr | [x] |
+| Botão "+ Circuitos" (B:33,65): acrescenta | botão | `bus_defaults` → `circuits[]` | Barr | [x] |
+| `busBeltName` padrão `transport-belt` (B:13,35) | campo | `bus.belt` | Barr | [x] |
+| Botão "Gerar fábrica com barramento" | botão | `generate_bus` (ver §5) | Barr | [x] |
+| `busResult` (B:14,140-158): "Faixas do barramento" (item_a, item_b, load_a, load_b, capacity_per_min), folgas `free_per_min`, avisos `warnings` | resultado | consome `lanes`, `free_per_min`, `warnings`, `entity_count`, `blueprints[]` | Barr | [x] |
+| Botão "Copiar blueprint da fábrica" (B:157) | botão | local (`Clipboard`, `busBlueprint` = 1º de `blueprints`) | Barr / Exp | [x] |
+| Texto de erro em `busResult` quando falha (B:136) | mensagem | local | Barr | [x] |
 
 ## 9. Aba Balanceador (F:127-146)
 
 | Controle atual | Tipo | Comando + payload | Destino | Paridade |
 |---|---|---|---|---|
-| `balancerTopologyChoice`: splitter-1-2, splitter-2-1, splitter-2-2 (padrão 2-2) (F:20,130) | combo | `generate_balancer.topology` | Bal | [ ] |
-| `balancerBeltChoice` (F:21,133,166-176), preenchido de `equipment.belt` | combo | `.belt` | Bal | [ ] |
-| `balancerSplitterChoice` (F:22,134), de `equipment.splitter` | combo | `.splitter` | Bal | [ ] |
-| `balancerInputPriority` / `balancerOutputPriority`: Sem prioridade, left, right (F:23-24,135-142) | 2 combos | `.input_priority`, `.output_priority` | Bal | [ ] |
-| `balancerLengthBox` padrão 4, 2-64 (F:25,143) | campo | `.length` | Bal | [ ] |
-| `balancerFlowBox` padrão 0 (F:25,144), aceita vírgula | campo | `.required_flow` | Bal | [ ] |
-| Aviso "um único material…" (F:145) | rótulo | local | Bal | [ ] |
-| `RenderBalancerChoices` (F:160), chamado em `ApplyStatus` | função | local | Sistema | [ ] |
+| `balancerTopologyChoice`: splitter-1-2, splitter-2-1, splitter-2-2 (padrão 2-2) (F:20,130) | combo | `generate_balancer.topology` | Bal | [x] |
+| `balancerBeltChoice` (F:21,133,166-176), preenchido de `equipment.belt` | combo | `.belt` | Bal | [x] |
+| `balancerSplitterChoice` (F:22,134), de `equipment.splitter` | combo | `.splitter` | Bal | [x] |
+| `balancerInputPriority` / `balancerOutputPriority`: Sem prioridade, left, right (F:23-24,135-142) | 2 combos | `.input_priority`, `.output_priority` | Bal | [x] |
+| `balancerLengthBox` padrão 4, 2-64 (F:25,143) | campo | `.length` | Bal | [x] |
+| `balancerFlowBox` padrão 0 (F:25,144), aceita vírgula | campo | `.required_flow` | Bal | [x] |
+| Aviso "um único material…" (F:145) | rótulo | local | Bal | [x] |
+| `RenderBalancerChoices` (F:160), chamado em `ApplyStatus` | função | local | Sistema | [x] |
 | `RenderBalancerSummary` (P:603): topologia, capacidade, esteiras, portas de entrada e saída | resultado | consome `layout.topology.{key,inputs,outputs,capacity_per_min}`, `layout.required_flow_per_min`, `belt_usable_capacity_per_min`, `entity_count`, `ports.inputs/outputs` | Resumo (ou Bal) | [x] |
 | Pós-geração (P:530-533): `preview.SetResult`, `Fit`, título da prévia, troca de aba, status | fluxo | local | Prévia/Status | [x] |
 
@@ -220,7 +220,7 @@ Métodos públicos usados por `MainWindow`: `GamePreview()`, `Stop()`, `Clear()`
 | Botão "Copiar livro" (P:213) | botão | local: `batchResult.blueprint_book_string`, senão `result.blueprint_book_string`; status "Livro de blueprints copiado." | Exp | [x] |
 | Botão "Exportar livro" (P:213) → `ExportBook` (P:797); `ForgePlan-modular.txt` ou `ForgePlan-book.txt` | botão | local (UTF-8 sem BOM) | Exp | [x] |
 | Botão "Exportar .txt" (P:213) → `Export` (P:790); `<produto>-blueprint.txt` ou `-modular-book.txt` | botão | local (grava `result.blueprint_string`, UTF-8 sem BOM) | Exp (TXT) | [x] |
-| Copiar blueprint da fábrica com barramento | botão | ver §8 | Exp | [ ] |
+| Copiar blueprint da fábrica com barramento | botão | ver §8 | Exp | [x] |
 | Copiar corpo de expansão, livro entrada+expansão, alternativa física | botões | ver §10 | Exp | [x] |
 
 ## 13. Menu Ajuda (novo)
@@ -228,7 +228,7 @@ Métodos públicos usados por `MainWindow`: `GamePreview()`, `Stop()`, `Clear()`
 | Controle | Tipo | Comando | Destino | Paridade |
 |---|---|---|---|---|
 | Limitações e relatórios de `docs/project` | novo | local (abrir arquivo/pasta) | Ajuda | [x] |
-| Sobre / versão | novo | local | Ajuda | [ ] |
+| Sobre / versão | novo | local | Ajuda | [x] |
 
 ## 14. Barra de status, cabeçalho, janela e ciclo de vida
 
@@ -244,11 +244,11 @@ Métodos públicos usados por `MainWindow`: `GamePreview()`, `Stop()`, `Clear()`
 | `fitSelectedArea.Checked` (F:95) | evento | local | Fábrica | [x] |
 | `modulesAuto.Checked/Unchecked` (F:238-239) | evento | local | Fábrica | [x] |
 | `generationTimer.Tick` (F:156) e `ollamaTimer.Tick` (P:222) | timers | local | Status / Sistema | [x] |
-| `Backend` (P:25-91): processo Python `native_bridge.py -u`, `FORGEPLAN_PYTHON`, gate de 1 requisição, timeout de 12 min, `_cancel_file` em generate/generate_batch/generate_integrated, reinício após cancelamento ou timeout, `Dispose` | classe | todos | Mantida (spec §4) | [ ] |
-| `J` (helpers JSON) e `Art` (carrega PNG, recorta ícone quadrado, reserva "◆", tooltip "Rótulo\nnome") (P:16-23,93-125) | classes | local | Sistema; `Art.Icon` alimenta `SlotGrid` | [ ] |
-| `Program.Main` (P:812): pasta raiz = pai de `AppContext.BaseDirectory`; estilos globais; em exceção grava `.runtime/desktop-error.log` e mostra MessageBox | ponto de entrada | local | Sistema | [ ] |
-| Estilos XAML globais de Button, TextBox, ComboBoxItem, ToolTip, ListBoxItem, TabItem (P:821-830) | tema | local | Substituídos por `Theme/Factorio.xaml` | [ ] |
-| `UI.Brush/Text/Button/Input/Section/Label/Scroll`, `Lime/Muted/Panel/Line` (P:127-146) | helpers | local | Substituídos pelo tema e por `SlotGrid` | [ ] |
+| `Backend` (P:25-91): processo Python `native_bridge.py -u`, `FORGEPLAN_PYTHON`, gate de 1 requisição, timeout de 12 min, `_cancel_file` em generate/generate_batch/generate_integrated, reinício após cancelamento ou timeout, `Dispose` | classe | todos | Mantida (spec §4) | [x] |
+| `J` (helpers JSON) e `Art` (carrega PNG, recorta ícone quadrado, reserva "◆", tooltip "Rótulo\nnome") (P:16-23,93-125) | classes | local | Sistema; `Art.Icon` alimenta `SlotGrid` | [x] |
+| `Program.Main` (P:812): pasta raiz = pai de `AppContext.BaseDirectory`; estilos globais; em exceção grava `.runtime/desktop-error.log` e mostra MessageBox | ponto de entrada | local | Sistema | [x] |
+| Estilos XAML globais de Button, TextBox, ComboBoxItem, ToolTip, ListBoxItem, TabItem (P:821-830) | tema | local | Substituídos por `Theme/Factorio.xaml` | [x] parcial: `Theme/Factorio.xaml` é carregado depois e define o visual; os estilos antigos continuam em `Program.Main` como base de controles sem estilo (diálogo de Perfil). Remoção fica para limpeza posterior (sem mudança de comportamento) |
+| `UI.Brush/Text/Button/Input/Section/Label/Scroll`, `Lime/Muted/Panel/Line` (P:127-146) | helpers | local | Substituídos pelo tema e por `SlotGrid` | [x] parcial: abas e menus usam `GameUI`/tema/`SlotGrid`; `UI.*` ainda serve ao diálogo de Perfil, à prévia (`GamePreview`) e a `UI.Input`/`UI.Scroll`. Remoção fica para limpeza posterior |
 
 ## Comandos do motor usados (para conferência)
 
