@@ -37,7 +37,11 @@ A janela curta do caso 04 (1200 ticks) deu 0,450; com 7200 ticks o valor estabil
 
 ## Não coberto ainda
 
-Taxa/capacidade de tubulação (o caso 07 usa `infinity-pipe` ligado direto à máquina), mais de um beacon (o perfil de múltiplos beacons não está modelado e `predict_rate` recusa), esteiras com saturação por lane, splitters, e a modlist de 226 mods do usuário. O código do mod já aceita `feed.fluid`, mas não foi exercitado em jogo.
+Taxa/capacidade de tubulação (o caso 07 usa `infinity-pipe` ligado direto à máquina), mais de um beacon (o perfil de múltiplos beacons não está modelado e `predict_rate` recusa), esteiras com saturação por lane, splitters,  O código do mod já aceita `feed.fluid`, mas não foi exercitado em jogo.
+
+## Modlist do usuário (226 mods)
+
+O caso 01 rodou com o snapshot dos 226 mods ativos (zips ligados por hardlink, sem cópia): construiu 1 montadora e 2 inserters e mediu **1,000 engrenagem/s**, igual ao vanilla. Tempo: cerca de 185 s por caso, quase todo carregando mods (criação do mapa + execução). A primeira tentativa falhou porque a superfície inicial do save modificado não tinha o chunk de origem gerado; o mod agora cria a sua própria superfície plana (`forgeplan-harness`, tiles `lab-dark-1`), independente do planeta inicial. Os casos vanilla continuam passando.
 
 ## Tolerância proposta
 

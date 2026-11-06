@@ -68,6 +68,18 @@ class RunnerTests(unittest.TestCase):
         data = json.loads((self.root / "c1" / "mods" / "mod-list.json").read_text())
         self.assertEqual([m["name"] for m in data["mods"]], ["base", "forgeplan-harness"])
 
+    def test_user_modlist_snapshot_is_hardlinked_not_copied(self):
+        snap = self.tmp / "snap"
+        snap.mkdir()
+        (snap / "carna_0.3.zip").write_bytes(b"zipdata")
+        (snap / "mod-list.json").write_text(json.dumps({"mods": [
+            {"name": "base", "enabled": True}, {"name": "carna", "enabled": True}, {"name": "off", "enabled": False}]}))
+        self.run_it(mods_from=snap)
+        mods = self.root / "c1" / "mods"
+        self.assertEqual((mods / "carna_0.3.zip").stat().st_ino, (snap / "carna_0.3.zip").stat().st_ino)
+        names = [m["name"] for m in json.loads((mods / "mod-list.json").read_text())["mods"] if m["enabled"]]
+        self.assertEqual(names, ["base", "carna", "forgeplan-harness"])
+
     def test_valid_result_returned(self):
         result = self.run_it()
         self.assertEqual(result["measured"], {"x": 1.0})

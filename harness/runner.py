@@ -1,5 +1,6 @@
 """Run one harness case in an isolated Factorio instance (see harness/LAUNCH.md)."""
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -28,7 +29,7 @@ def build_commands(factorio_exe, config: Path, mods: Path, run_dir: Path, case: 
     ]
 
 
-def _prepare(case: Case, work_root: Path, mod_src: Path, read_data: Path) -> Path:
+def _prepare(case: Case, work_root: Path, mod_src: Path, read_data: Path, mods_from: Path = None) -> Path:
     work_root = Path(work_root).resolve()
     run_dir = (work_root / case.id).resolve()
     if work_root not in run_dir.parents:
@@ -46,18 +47,25 @@ def _prepare(case: Case, work_root: Path, mod_src: Path, read_data: Path) -> Pat
     if "]==]" in payload:
         raise ValueError("case contém delimitador reservado")
     (mod / "case_data.lua").write_text("return [==[" + payload + "]==]\n", encoding="utf-8")
-    (mods / "mod-list.json").write_text(
-        json.dumps({"mods": [{"name": "base", "enabled": True}, {"name": MOD_NAME, "enabled": True}]}), encoding="utf-8")
+    entries = [{"name": "base", "enabled": True}]
+    if mods_from:  # user's modlist: hardlink the (multi-GB) zips instead of copying them
+        source = Path(mods_from)
+        entries = json.loads((source / "mod-list.json").read_text(encoding="utf-8"))["mods"]
+        for item in source.iterdir():
+            if item.is_file() and item.name != "mod-list.json":
+                os.link(item, mods / item.name)
+    entries = [e for e in entries if e.get("name") != MOD_NAME] + [{"name": MOD_NAME, "enabled": True}]
+    (mods / "mod-list.json").write_text(json.dumps({"mods": entries}), encoding="utf-8")
     (run_dir / "config.ini").write_text(
         "[path]\nread-data=%s\nwrite-data=%s\n" % (read_data, run_dir / "user-data"), encoding="utf-8")
     return run_dir
 
 
 def run_case(case: Case, factorio_exe, work_root: Path, timeout_s: int = 600, mod_src: Path = MOD_SRC,
-             read_data: Path = None) -> dict:
+             read_data: Path = None, mods_from: Path = None) -> dict:
     if read_data is None:
         read_data = Path(_prefix(factorio_exe)[0]).parent.parent.parent / "data"
-    run_dir = _prepare(case, work_root, Path(mod_src), Path(read_data))
+    run_dir = _prepare(case, work_root, Path(mod_src), Path(read_data), mods_from)
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     for cmd in build_commands(factorio_exe, run_dir / "config.ini", run_dir / "mods", run_dir, case):
         try:

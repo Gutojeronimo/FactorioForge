@@ -51,6 +51,12 @@ local function build_blueprint(surface)
   if rc == 1 then add_error("import_stack falhou") end
   if rc == -1 then add_error("import_stack com erros") end
   local ghosts = stack.build_blueprint{surface = surface, force = "player", position = {0, 0}}
+  if #ghosts == 0 then
+    local bp = stack.get_blueprint_entities() or {}
+    add_error("build_blueprint não criou ghosts: import_rc=" .. rc .. ", entidades_no_blueprint=" .. #bp ..
+      ", superfície=" .. surface.name .. ", tile_origem=" .. surface.get_tile(0, 0).name ..
+      ", is_blueprint=" .. tostring(stack.is_blueprint) .. ", valid_for_read=" .. tostring(stack.valid_for_read))
+  end
   storage.shift = find_shift(stack.get_blueprint_entities() or {}, ghosts)
   local built, rejected = {}, {}
   for _, ghost in pairs(ghosts) do
@@ -163,11 +169,28 @@ local function finish(surface)
   }), false)
 end
 
+local SURFACE_NAME = "forgeplan-harness"
+
+-- Own flat surface: independent of the save's spawn planet (modded starts can leave nauvis ungenerated or watery).
+local function make_surface()
+  local surface = game.create_surface(SURFACE_NAME, {
+    default_enable_all_autoplace_controls = false, starting_area = "none",
+    property_expression_names = {cliffiness = 0},
+  })
+  surface.request_to_generate_chunks({0, 0}, 4)
+  surface.force_generate_chunk_requests()
+  local tiles = {}
+  for x = -96, 95 do for y = -96, 95 do tiles[#tiles + 1] = {name = "lab-dark-1", position = {x, y}} end end
+  surface.set_tiles(tiles)
+  for _, e in pairs(surface.find_entities()) do if e.type ~= "character" then e.destroy() end end
+  return surface
+end
+
 local function init()
   for _, recipe in pairs(game.forces.player.recipes) do recipe.enabled = true end
   storage.errors, storage.machines, storage.rejected, storage.built = {}, {}, {}, {}
   storage.t0 = game.tick
-  local surface = game.surfaces[1]
+  local surface = make_surface()
   local ok, err = pcall(function()
     storage.built, storage.rejected = build_blueprint(surface)
     place_feeds(surface)
@@ -183,7 +206,7 @@ script.on_event(defines.events.on_tick, function(event)
     if event.tick >= START_TICK then init() end
     return
   end
-  local surface = game.surfaces[1]
+  local surface = game.surfaces[SURFACE_NAME]
   local elapsed = event.tick - storage.t0
   pcall(refill_power, surface)
   if elapsed % 30 == 0 and elapsed > case.ticks_warmup then pcall(sample_status, surface) end
