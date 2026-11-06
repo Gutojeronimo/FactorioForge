@@ -34,9 +34,11 @@ def group_products(recipes, icon=lambda name: None, origin=lambda name: ""):
         first = entry["first"]
         # Group/order come from the product prototype, shared by all its recipes.
         product_icon = icon(name)
-        variants = [{"recipe": r["name"], "label": r["label"], "icon": icon(r["name"]) or product_icon}
+        variants = [{"recipe": r["name"], "label": r["label"], "icon": icon(r["name"]) or product_icon,
+                     "ingredients": [i["name"] for i in r.get("ingredients") or []],
+                     "products": [p["name"] for p in r.get("products") or []]}
                     for r in sorted(entry["recipes"], key=lambda r: _variant_rank(r, name, origin))]
-        label = next((r["label"] for r in entry["recipes"] if r["name"] == name), first["label"])
+        label = first.get("item_label") or name
         result.append({
             "name": name, "label": label, "icon": product_icon or variants[0]["icon"],
             "group": first["item_group"], "group_label": first["item_group_label"], "group_order": first["item_group_order"],

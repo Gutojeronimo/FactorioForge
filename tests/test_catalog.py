@@ -92,6 +92,21 @@ class RecipeCatalogTests(unittest.TestCase):
         self.assertEqual(_excluded_subproducts({"excluded_subproducts": "steel-plate; stone-brick"}), {"steel-plate", "stone-brick"})
         self.assertEqual(_excluded_subproducts({"excluded_subproducts": []}), set())
 
+    def test_recipes_expose_main_product_item_label(self):
+        raw = {
+            "item": {
+                "thrower-item": {"localised_name": ["?", ["", ["thrower-gen.name"]]]},
+                "gear": {"localised_name": ["item-name.iron-gear"]},
+            },
+            "recipe": {
+                "aperture-control": {"result": "thrower-item", "localised_name": ["recipe-name.aperture-control"]},
+                "gear-recipe": {"result": "gear"},
+            },
+        }
+
+        labels = {recipe["name"]: recipe["item_label"] for recipe in _recipe_list(raw)}
+        self.assertEqual(labels, {"aperture-control": "thrower item", "gear-recipe": "iron gear"})
+
     def test_hidden_and_productless_recipes_are_omitted(self):
         raw = {
             "recipe": {

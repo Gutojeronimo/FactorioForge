@@ -478,7 +478,7 @@ def _display_name(value, fallback: str) -> str:
         return value
     if isinstance(value, list):
         key = next((part for part in value if isinstance(part, str) and part), "")
-        if key:
+        if key and key != "?":
             return key.rsplit(".", 1)[-1].replace("-", " ").replace("_", " ")
     return fallback.replace("-", " ").replace("_", " ")
 
@@ -545,6 +545,7 @@ def _recipe_list(raw: dict) -> list[dict]:
         result.append({
             "name": name,
             "label": label,
+            "item_label": _display_name(prototype.get("localised_name"), main_product["name"]),
             "category": _category_names(recipe)[0],
             "energy_required": float(recipe.get("energy_required", 0.5) or 0.5),
             "products": products,

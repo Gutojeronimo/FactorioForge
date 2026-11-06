@@ -56,6 +56,23 @@ class GroupProductsTest(unittest.TestCase):
                    recipe("w", "w", group_order="a", subgroup_order="a", order="a", label="Alpha")]
         self.assertEqual([p["name"] for p in group_products(recipes)], ["w", "x", "y", "z", "b"])
 
+    def test_label_comes_from_item_not_from_other_recipe(self):
+        r = recipe("usnr-aperture-control-generated", "RTThrower-inserter-Item", label="usnr aperture control generated")
+        r["item_label"] = "Thrower inserter"
+        self.assertEqual(group_products([r])[0]["label"], "Thrower inserter")
+
+    def test_label_falls_back_to_product_name(self):
+        result = group_products([recipe("scrap-recycling", "scrap", category="recycling", label="Scrap recycling")])
+        self.assertEqual(result[0]["label"], "scrap")
+
+    def test_variants_list_ingredient_and_product_names_for_search(self):
+        r = recipe("gear", "iron-gear-wheel")
+        r["ingredients"] = [{"name": "iron-plate", "amount": 2, "type": "item"}]
+        r["products"].append({"name": "scrap", "type": "item", "amount": 1})
+        variant = group_products([r])[0]["variants"][0]
+        self.assertEqual(variant["ingredients"], ["iron-plate"])
+        self.assertEqual(variant["products"], ["iron-gear-wheel", "scrap"])
+
     def test_icons_from_callable(self):
         result = group_products([recipe("r", "p")], icon=lambda n: "/i/" + n)
         self.assertEqual(result[0]["icon"], "/i/p")
