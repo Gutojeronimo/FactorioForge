@@ -828,6 +828,7 @@ static class Program
               <Style TargetType="TabItem"><Setter Property="Foreground" Value="#DCE8DD"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem"><Border x:Name="tab" Background="#243329" BorderBrush="#3B4C40" BorderThickness="1" Padding="10,11"><ContentPresenter ContentSource="Header"/></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="tab" Property="Background" Value="#C4E878"/><Setter Property="Foreground" Value="#162011"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
             </ResourceDictionary>
             """));
+            app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/ForgePlan;component/Theme/Factorio.xaml") });
             app.Run(new MainWindow(root));
         }
         catch (Exception e)
