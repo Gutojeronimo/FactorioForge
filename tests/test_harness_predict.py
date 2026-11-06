@@ -3,6 +3,7 @@ import unittest
 from harness.predict import predict_rate
 
 CAT = {
+    "beacons": {"beacon": {"module_slots": 2, "distribution_effectivity": 1.5, "allowed_effects": ["speed", "consumption", "pollution", "quality"]}},
     "machines": {
         "assembling-machine-1": {"crafting_speed": 0.5, "module_slots": 0},
         "assembling-machine-2": {"crafting_speed": 0.75, "module_slots": 2},
@@ -39,6 +40,14 @@ class PredictTests(unittest.TestCase):
 
     def test_machine_count_multiplies(self):
         self.assertAlmostEqual(self.rate("assembling-machine-1", machines=3), 3.0)
+
+    def test_single_beacon_adds_speed_scaled_by_effectivity(self):
+        got = self.rate("assembling-machine-1", beacon_modules=[{"name": "speed-module", "count": 2}], beacons=1)
+        self.assertAlmostEqual(got, 0.5 * (1 + 2 * 0.2 * 1.5) / 0.5)
+
+    def test_more_than_one_beacon_not_modelled(self):
+        with self.assertRaises(ValueError):
+            self.rate("assembling-machine-1", beacon_modules=[{"name": "speed-module", "count": 2}], beacons=2)
 
     def test_too_many_modules_rejected(self):
         with self.assertRaises(ValueError):

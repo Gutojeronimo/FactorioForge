@@ -17,6 +17,7 @@ class Case:
     feed: list = field(default_factory=list)
     sinks: list = field(default_factory=list)
     machine_modules: list = field(default_factory=list)
+    beacon_modules: list = field(default_factory=list)
     expected: dict = field(default_factory=dict)
     tolerance: dict = field(default_factory=lambda: {"abs": 0.0, "rel": 0.05})
 
@@ -29,6 +30,15 @@ def _positive_int(data, key, allow_zero=False):
     if isinstance(value, bool) or not isinstance(value, int) or value < (0 if allow_zero else 1):
         raise ValueError("%s deve ser um inteiro %s" % (key, ">= 0" if allow_zero else "> 0"))
     return value
+
+
+def _module_list(data, key):
+    mods = data.get(key, [])
+    if not isinstance(mods, list) or any(
+            not isinstance(m, dict) or not isinstance(m.get("name"), str) or isinstance(m.get("count"), bool)
+            or not isinstance(m.get("count"), int) or m["count"] < 1 for m in mods):
+        raise ValueError(key + ": lista de {name, count>=1}")
+    return mods
 
 
 def validate_case(data: dict) -> Case:
@@ -53,16 +63,13 @@ def validate_case(data: dict) -> Case:
     if not isinstance(sinks, list) or any(
             not isinstance(s, dict) or not isinstance(s.get("position"), dict) for s in sinks):
         raise ValueError("cada sink precisa de position")
-    mods = data.get("machine_modules", [])
-    if not isinstance(mods, list) or any(
-            not isinstance(m, dict) or not isinstance(m.get("name"), str) or isinstance(m.get("count"), bool)
-            or not isinstance(m.get("count"), int) or m["count"] < 1 for m in mods):
-        raise ValueError("machine_modules: lista de {name, count>=1}")
+    mods = _module_list(data, "machine_modules")
+    beacon_mods = _module_list(data, "beacon_modules")
     expected = data.get("expected", {})
     if not isinstance(expected, dict):
         raise ValueError("expected deve ser um objeto")
     return Case(case_id, blueprint, _positive_int(data, "ticks_warmup", True), _positive_int(data, "ticks_measure"),
-                seed, feed, sinks, mods, expected, data.get("tolerance") or {"abs": 0.0, "rel": 0.05})
+                seed, feed, sinks, mods, beacon_mods, expected, data.get("tolerance") or {"abs": 0.0, "rel": 0.05})
 
 
 def load_case(path: Path) -> Case:

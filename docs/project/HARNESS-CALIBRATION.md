@@ -17,7 +17,9 @@ Janela de medição: 300 ticks de aquecimento + 1200 ticks medidos. Produção l
 - **Velocidade de crafting, módulos de velocidade e produtividade:** o cálculo atual (`production_math.effects` + `harness.predict`) coincide com o jogo nos três casos.
 - **Inserter:** `inserter_budget` é conservador. O inserter básico entregou cerca de 0,90 placa/s contra 0,68 previsto. O erro é a favor da segurança (o modelo subestima), mas é grande demais para calcular "100 itens/s" sem sobra de equipamento. Calibrar `ticks` e a constante de coleta é a próxima ação.
 - **Armadilha descoberta:** com uma única fileira de fast inserters, os casos 02 e 03 mediram 1,25 e 1,35 itens/s porque a **entrada** (placas) era o gargalo, não a máquina. O harness expõe isso; o planejador precisa sempre cruzar máquina × inserter × esteira.
+- **Beacon:** um beacon com 2 módulos de velocidade (efeito × `distribution_effectivity` 1,5) bate exatamente: 0,75·(1+0,6)/0,5 = 2,4/s. A primeira tentativa mediu 1,25 porque o blueprint foi deslocado pelo jogo e a alimentação caiu fora das máquinas; o mod agora corrige o deslocamento.
 - **Direção do inserter** no blueprint: aponta para o lado de coleta (ver `harness/LAUNCH.md`). Conferir o exportador do ForgePlan.
+| 06 montadora 2 + 1 beacon com 2 módulos de velocidade, 3 fileiras | 2,400 | 2,400 | passa |
 
 ## Inserter: causa provável e correção proposta
 
@@ -34,7 +36,7 @@ A janela curta do caso 04 (1200 ticks) deu 0,450; com 7200 ticks o valor estabil
 
 ## Não coberto ainda
 
-Fluidos (`infinity-pipe`), beacons, esteiras com saturação por lane, splitters, e a modlist de 226 mods do usuário. O código do mod já aceita `feed.fluid`, mas não foi exercitado em jogo.
+Fluidos (`infinity-pipe`), mais de um beacon (o perfil de múltiplos beacons não está modelado e `predict_rate` recusa), esteiras com saturação por lane, splitters, e a modlist de 226 mods do usuário. O código do mod já aceita `feed.fluid`, mas não foi exercitado em jogo.
 
 ## Tolerância proposta
 

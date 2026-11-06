@@ -33,11 +33,11 @@ def line(machine, inserter, recipe, lanes=1, reach=1):
     return ents
 
 
-def case(case_id, entities, expected, modules=(), lanes=1, warmup=300, measure=1200, reach=1):
+def case(case_id, entities, expected, modules=(), lanes=1, warmup=300, measure=1200, reach=1, beacon_modules=()):
     return {"id": case_id, "blueprint_string": blueprint_string(entities), "ticks_warmup": warmup,
             "ticks_measure": measure, "seed": 1,
             "feed": [{"item": "iron-plate", "infinite": True, "position": {"x": -1.5 - reach, "y": y}} for y in rows(lanes)],
-            "sinks": [{"position": {"x": 2.5 + reach, "y": y}} for y in rows(lanes)], "machine_modules": list(modules),
+            "sinks": [{"position": {"x": 2.5 + reach, "y": y}} for y in rows(lanes)], "machine_modules": list(modules), "beacon_modules": list(beacon_modules),
             "expected": expected, "tolerance": {"abs": 0.0, "rel": 0.05}}
 
 
@@ -59,6 +59,11 @@ def build(catalog: dict) -> list:
              {"iron-gear-wheel": min(gear("assembling-machine-1"), basic / 2)}, warmup=600, measure=7200),
         case("05-long-handed-limited", line("assembling-machine-1", "long-handed-inserter", "iron-gear-wheel", reach=2),
              {"iron-gear-wheel": min(gear("assembling-machine-1"), long_hand / 2)}, warmup=600, measure=7200, reach=2),
+        # One beacon north of the machine (3x3, supply area 3 reaches the machine); AM2 accepts speed from beacons.
+        case("06-beacon", line("assembling-machine-2", "fast-inserter", "iron-gear-wheel", 3)
+             + [{"name": "beacon", "position": {"x": 0.5, "y": -3.5}}],
+             {"iron-gear-wheel": gear("assembling-machine-2", beacon_modules=speed2, beacons=1)}, lanes=3,
+             beacon_modules=speed2),
     ]
     return out
 

@@ -23,6 +23,7 @@
   }
  ],
  "machine_modules": [],
+ "beacon_modules": [],
  "expected": {
   "iron-gear-wheel": 1.0
  },

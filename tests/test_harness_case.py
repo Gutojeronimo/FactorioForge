@@ -48,6 +48,13 @@ class CaseTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validate_case(valid(machine_modules=bad))
 
+    def test_beacons_and_beacon_modules_validated(self):
+        ok = validate_case(valid(beacon_modules=[{"name": "speed-module", "count": 2}]))
+        self.assertEqual(ok.beacon_modules[0]["name"], "speed-module")
+        self.assertEqual(validate_case(valid()).beacon_modules, [])
+        with self.assertRaises(ValueError):
+            validate_case(valid(beacon_modules=[{"name": "x", "count": 0}]))
+
     def test_seed_must_be_int(self):
         with self.assertRaises(ValueError):
             validate_case(valid(seed="1"))
