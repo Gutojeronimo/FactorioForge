@@ -74,8 +74,14 @@ class GameGraphics:
     def icon(self, name: str) -> str | None:
         proto = self.prototypes.get(name, {})
         logical = proto.get("icon")
-        if not logical and proto.get("icons"):
-            logical = proto["icons"][0].get("icon")
+        if not isinstance(logical, str):  # the dump writes removed properties as {"op": "delete"} markers
+            logical = None
+        if not logical and isinstance(proto.get("icons"), list):
+            for layer in proto["icons"]:
+                path = layer.get("icon") if isinstance(layer, dict) else None
+                resolved = self.asset_path(path) if isinstance(path, str) else None
+                if resolved:
+                    return resolved
         if not logical and proto.get("results"):
             first = proto["results"][0]
             if isinstance(first, dict) and first.get("name") != name:
