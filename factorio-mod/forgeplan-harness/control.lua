@@ -230,6 +230,7 @@ local function init()
     insert_beacon_modules(surface)
   end)
   if not ok then add_error(err) end
+  if case.ticks_warmup == 0 then storage.baseline = snapshot(surface); storage.counted_baseline = counted_contents() end
   storage.started = true
 end
 
@@ -240,8 +241,12 @@ script.on_event(defines.events.on_tick, function(event)
   end
   local surface = game.surfaces[SURFACE_NAME]
   local elapsed = event.tick - storage.t0
-  pcall(refill_power, surface)
-  if elapsed % 30 == 0 and elapsed > case.ticks_warmup then pcall(sample_status, surface) end
+  local ok_power, err_power = pcall(refill_power, surface)
+  if not ok_power and not storage.power_error then storage.power_error = true; add_error("refill_power: " .. tostring(err_power)) end
+  if elapsed % 30 == 0 and elapsed > case.ticks_warmup then
+    local ok_status, err_status = pcall(sample_status, surface)
+    if not ok_status and not storage.status_error then storage.status_error = true; add_error("sample_status: " .. tostring(err_status)) end
+  end
   if elapsed == case.ticks_warmup then storage.baseline = snapshot(surface); storage.counted_baseline = counted_contents() end
   if elapsed == case.ticks_warmup + case.ticks_measure and not storage.finished then
     storage.finished = true

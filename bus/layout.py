@@ -72,6 +72,9 @@ def place_input_signals(ports, occupied, make=signal_combinator, reach=2):
                 occupied.add((math.floor(spot[0]), math.floor(spot[1])))
                 placed.append(make(port["name"], port.get("per_min", 0), spot[0], spot[1], kind=kind))
                 break
+        else:
+            raise ValueError("Sem tile livre para o combinador de %s perto da porta em x=%s, y=%s."
+                             % (port["name"], port.get("x"), port.get("y")))
     return placed
 
 
@@ -94,35 +97,41 @@ def _row_key(cells, item):
 
 def _ordered(plan, cells):
     """Row 0 items go to the leftmost bus lanes: a tap on row y must not collide with the splitter of row y-1."""
-    plan.belts.sort(key=lambda b: (min(_row_key(cells, b.item_a), _row_key(cells, b.item_b) if b.item_b else 99), b.item_a))
+    key = lambda b: (min(_row_key(cells, b.item_a), _row_key(cells, b.item_b) if b.item_b else 99), b.item_a)
+    order = sorted(range(len(plan.belts)), key=lambda i: key(plan.belts[i]))
+    new_index = {old: new for new, old in enumerate(order)}
+    plan.belts = [plan.belts[i] for i in order]
+    plan.assignment = [None if a is None else new_index[a] for a in plan.assignment]
     return plan
 
 
 def _bus_groups(cells, names):
     """The bus mirrors each cell's real input belts: one group per belt, with only the bus items on it."""
-    groups = []
-    for _, cell in cells:
-        for group in _group_ports(cell["ports"]).values():
+    groups, keys = [], []
+    for cell_index, (_, cell) in enumerate(cells):
+        for group_index, group in enumerate(_group_ports(cell["ports"]).values()):
             items = {}
             for p in group:
                 if p["name"] in names:
                     items[p["name"]] = items.get(p["name"], 0) + p.get("per_min", 0)
-            if items:
-                groups.append({"items": items})
-    return groups
+            groups.append({"items": items})
+            keys.append((cell_index, group_index))
+    return groups, keys
 
 
-def build_factory(raw, targets, bus, cfg, cell_factory=None, recipes=None) -> Factory:
+def build_factory(raw, targets, bus, cfg, cell_factory=None, recipes=None, preferred=None) -> Factory:
     cfg = cfg or {}
     if cell_factory is None:
         from bus.cell import generate_cell
         cell_factory = lambda cell, c: generate_cell(cell, c, bus.belt)
     belts = {n: {"speed": p.get("speed", .03125)} for n, p in raw.get("transport-belt", {}).items()}
-    demand = plan_demand(targets, bus, recipes)
+    demand = plan_demand(targets, bus, recipes, preferred)
     warnings = list(demand.warnings)
     cells = [(d, cell_factory(d, cfg)) for d in demand.cells]
     names = bus.names()
-    plan = _ordered(allocate_groups(_bus_groups(cells, names), bus, {"belts": belts}), cells)
+    groups, group_keys = _bus_groups(cells, names)
+    plan = _ordered(allocate_groups(groups, bus, {"belts": belts}), cells)
+    belt_of_group = {key: plan.assignment[i] for i, key in enumerate(group_keys)}
 
     index = _bounds_index(raw)
     tier = TIERS.get(bus.belt)
@@ -176,22 +185,16 @@ def build_factory(raw, targets, bus, cfg, cell_factory=None, recipes=None) -> Fa
         cursor_y = max(ys) + dy + CELL_GAP_Y
     y_end = math.ceil(cursor_y)
 
-    assigned = defaultdict(float)
     tap_entities, replaced = [], set()
-    for demand_cell, ports in placed:
-        for pos, group in _group_ports(ports).items():
+    for cell_index, (demand_cell, ports) in enumerate(placed):
+        for group_index, (pos, group) in enumerate(_group_ports(ports).items()):
             items = {p["name"] for p in group if p["name"] in names}
             if not items:
                 continue
             if items != {p["name"] for p in group}:
                 warnings.append("Célula %s: entrada local compartilha a esteira com %s; o tap entrega só o item do barramento."
                                 % (demand_cell.recipe, ", ".join(sorted(items))))
-            candidates = [i for i, b in enumerate(plan.belts) if {b.item_a, b.item_b} - {None} == items]
-            if not candidates:
-                raise ValueError("Célula %s recebe %s na mesma esteira, mas no barramento esses itens estão separados."
-                                 % (demand_cell.recipe, " e ".join(sorted(items))))
-            choice = min(candidates, key=lambda i: assigned[i])
-            assigned[choice] += sum(p.get("per_min", 0) for p in group)
+            choice = belt_of_group[(cell_index, group_index)]
             tap = build_tap(columns[choice], {"x": pos[0], "y": pos[1]}, columns[choice + 1:], bus.belt,
                             underground, splitter, max_distance)
             tap_entities.extend(tap.entities)
@@ -217,7 +220,9 @@ def build_factory(raw, targets, bus, cfg, cell_factory=None, recipes=None) -> Fa
     for e in entities:
         for tile in _tiles(e, index):
             if tile in seen:
-                raise ValueError("Sobreposição entre %s e %s em %s." % (seen[tile]["name"], e["name"], tile))
+                raise ValueError("Sobreposição entre %s e %s em %s. Provável causa: células com ordens diferentes de insumos nas "
+                                 "esteiras de entrada (as faixas do barramento seguem a ordem das linhas de entrada); use a mesma "
+                                 "ordem de entradas ou reduza os itens do barramento." % (seen[tile]["name"], e["name"], tile))
             seen[tile] = e
     target_names = {t["name"] for t in targets}
     for demand_cell, _ in placed:

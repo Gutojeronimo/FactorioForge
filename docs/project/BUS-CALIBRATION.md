@@ -43,3 +43,22 @@ A primeira rodada (aquecimento de 900 ticks, janela de 3600) deu 41% a 77% do pr
 - O barramento espelha as esteiras de entrada reais das células (`allocate_groups`): um item sozinho ou dois itens (um por lane); dois itens só dividem esteira quando a célula os recebe na mesma esteira.
 - O modo de receitas prefere a receita com o nome do produto: em catálogos com mods, a primeira em ordem alfabética era `biorecycle-bacteria-A-engine` para engrenagem.
 - Máquina padrão da célula: primeira de `assembling-machine-2`, `-1`, `-3`, `chemical-plant`, fornos; a ordem do catálogo começa por uma máquina oculta de velocidade 1000.
+
+## Revisão final (revisor independente) e correções
+
+Corrigido, cada item com teste que falhou antes (261 testes verdes, 13 casos no jogo passando depois):
+
+- **Taps podiam sobrecarregar uma esteira sem aviso.** A escolha gulosa de faixa ignorava a capacidade. Agora `allocate_groups` empacota os grupos de entrada (first-fit decreasing) e pode precisar de mais esteiras do que o total sugere (ex.: grupos de 0,8 + 0,6 + 0,6 de uma esteira exigem 3, não 2). Cada grupo é uma esteira de entrada de célula, atendida por um só tap, e **um grupo maior que uma esteira é recusado** com o nome do item.
+- **Combinador cobrindo duas portas.** `require_input_signals` agora consome cada combinador (um por porta) e `place_input_signals` falha alto se não houver tile livre.
+- **Receita escolhida pelo usuário perdida no bridge.** `preferred` (produto → receita) agora passa do app até o planejador.
+- **Payload malformado.** Barramento não-objeto, itens fora de lista, nome ausente e `max_belts` booleano ou texto viram erros claros.
+- **Hardlinks do snapshot de mods.** `mod-settings.dat` é copiado (o jogo pode regravá-lo), mods descompactados e links entre volumes geram erro explicativo.
+- **Mod Lua.** Erros de reposição de energia e de amostragem de status agora entram em `errors`; com aquecimento 0 o ponto de partida é gravado na criação.
+- **Aba Barramento.** O arquivo salvo é validado ao carregar (nome, duplicado, 1 a 64 esteiras), exceções inesperadas não derrubam a janela.
+
+Não corrigido (limitações registradas):
+
+- **Ordens opostas de insumos entre células** (uma célula com cobre na linha 0 e ferro na linha 1, outra o inverso) geram sobreposição entre splitter e underground. A mensagem de erro agora explica a causa provável; resolver exige reordenar ou duplicar faixas.
+- **Terreno do harness:** o piso plano cobre ±96 tiles; fábricas maiores caem em terreno não preparado (apareceria como entidade rejeitada).
+- **Dumps do Factorio 1.x** (campo `flags` em vez de `hidden`) não foram verificados para a exclusão de módulos ocultos.
+- **Não verificado:** orientação da primeira esteira de entrada de todas as receitas reais (as testadas entram pelo leste) e a jornada visual da aba.

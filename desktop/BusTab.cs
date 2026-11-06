@@ -86,9 +86,13 @@ sealed partial class MainWindow
             var saved = JsonNode.Parse(File.ReadAllText(BusConfigPath));
             busBeltName.Text = J.S(saved, "belt", "transport-belt");
             busList.Clear();
-            foreach (var node in J.A(saved, "items")) busList.Add((J.S(node, "name"), (int)J.N(node, "max_belts", 4)));
+            foreach (var node in J.A(saved, "items"))
+            {
+                var name = J.S(node, "name").Trim(); var max = (int)J.N(node, "max_belts", 4);
+                if (name != "" && max >= 1 && max <= 64 && !busList.Any(entry => entry.Name == name)) busList.Add((name, max));
+            }
         }
-        catch (Exception exception) when (exception is IOException or System.Text.Json.JsonException) { }
+        catch (Exception) { busList.Clear(); }
     }
 
     void SaveBusConfig()
@@ -98,7 +102,7 @@ sealed partial class MainWindow
             Directory.CreateDirectory(Path.GetDirectoryName(BusConfigPath)!);
             File.WriteAllText(BusConfigPath, BusPayload().ToJsonString(new() { WriteIndented = true }));
         }
-        catch (IOException) { }
+        catch (Exception) { }
     }
 
     JsonObject BusPayload()
@@ -113,17 +117,18 @@ sealed partial class MainWindow
         if (busy) return;
         if (queuedObjectives.Count == 0) { status.Text = "Adicione fábricas à fila (aba principal) antes de gerar com barramento."; return; }
         SaveBusConfig();
-        var targets = new JsonArray(); var machines = new JsonObject();
+        var targets = new JsonArray(); var machines = new JsonObject(); var preferred = new JsonObject();
         foreach (var objective in queuedObjectives)
         {
             targets.Add(new JsonObject { ["name"] = objective.Product, ["per_min"] = objective.Rate });
             machines[objective.Recipe] = objective.Machine;
+            preferred[objective.Product] = objective.Recipe;
         }
         SetBusy(true, "Gerando fábrica com barramento");
         busResult.Children.Clear();
         try
         {
-            var data = await backend.Send("generate_bus", new JsonObject { ["targets"] = targets, ["machines"] = machines, ["bus"] = BusPayload() });
+            var data = await backend.Send("generate_bus", new JsonObject { ["targets"] = targets, ["machines"] = machines, ["preferred"] = preferred, ["bus"] = BusPayload() });
             busBlueprint = J.A(data, "blueprints").FirstOrDefault()?.ToString() ?? "";
             RenderBusResult(data);
             status.Text = "Fábrica com barramento gerada · " + J.N(data, "entity_count") + " entidades.";

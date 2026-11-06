@@ -46,6 +46,13 @@ class SignalTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             require_input_signals([multi], [port()])
 
+    def test_one_combinator_cannot_cover_two_ports(self):
+        combos = [signal_combinator("iron-plate", 60, 11.5, 5.5)]
+        with self.assertRaisesRegex(ValueError, "iron-plate"):
+            require_input_signals(combos, [port(x=10.5, y=5.5), port(x=10.5, y=6.5)])
+        combos.append(signal_combinator("iron-plate", 60, 11.5, 6.5))
+        require_input_signals(combos, [port(x=10.5, y=5.5), port(x=10.5, y=6.5)])
+
     def test_output_ports_do_not_need_signals(self):
         require_input_signals([], [port(kind="output")])
 

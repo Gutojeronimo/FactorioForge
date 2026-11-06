@@ -80,6 +80,33 @@ class RunnerTests(unittest.TestCase):
         names = [m["name"] for m in json.loads((mods / "mod-list.json").read_text())["mods"] if m["enabled"]]
         self.assertEqual(names, ["base", "carna", "forgeplan-harness"])
 
+    def test_mod_settings_are_copied_not_linked(self):
+        snap = self.tmp / "snap2"
+        snap.mkdir()
+        (snap / "mod-settings.dat").write_bytes(b"settings")
+        (snap / "mod-list.json").write_text(json.dumps({"mods": [{"name": "base", "enabled": True}]}))
+        self.run_it(mods_from=snap)
+        copied = self.root / "c1" / "mods" / "mod-settings.dat"
+        self.assertNotEqual(copied.stat().st_ino, (snap / "mod-settings.dat").stat().st_ino)
+        self.assertEqual(copied.read_bytes(), b"settings")
+
+    def test_unpacked_mod_folder_is_reported(self):
+        snap = self.tmp / "snap3"
+        (snap / "carna_0.3").mkdir(parents=True)
+        (snap / "mod-list.json").write_text(json.dumps({"mods": [{"name": "base", "enabled": True}, {"name": "carna", "enabled": True}]}))
+        with self.assertRaisesRegex(ValueError, "carna_0.3"):
+            self.run_it(mods_from=snap)
+
+    def test_cross_volume_link_failure_is_reported(self):
+        from unittest import mock
+        snap = self.tmp / "snap4"
+        snap.mkdir()
+        (snap / "a_1.0.zip").write_bytes(b"z")
+        (snap / "mod-list.json").write_text(json.dumps({"mods": [{"name": "base", "enabled": True}]}))
+        with mock.patch("harness.runner.os.link", side_effect=OSError("cross-device")):
+            with self.assertRaisesRegex(ValueError, "mesmo volume"):
+                self.run_it(mods_from=snap)
+
     def test_valid_result_returned(self):
         result = self.run_it()
         self.assertEqual(result["measured"], {"x": 1.0})

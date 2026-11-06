@@ -83,7 +83,7 @@ class LanePlanTests(unittest.TestCase):
 
 
 class GroupLanePlanTests(unittest.TestCase):
-    """Real cells put 1 or 2 items on each input belt; the bus mirrors those row groups."""
+    """Real cells put 1 or 2 items on each input belt; one tap carries a whole group, so groups are packed into belts."""
 
     def alloc(self, groups, *names, max_belts=4):
         from bus.lanes import allocate_groups
@@ -92,21 +92,36 @@ class GroupLanePlanTests(unittest.TestCase):
     def test_single_item_group_gets_one_belt(self):
         plan = self.alloc([{"iron-plate": 100}], "iron-plate")
         self.assertEqual([(b.item_a, b.item_b) for b in plan.belts], [("iron-plate", None)])
+        self.assertEqual(plan.assignment, [0])
 
     def test_pair_group_shares_one_belt_even_when_item_is_also_used_alone(self):
         plan = self.alloc([{"iron-plate": 100, "coal": 200}, {"iron-plate": 300}], "iron-plate", "coal")
         keys = sorted((b.item_a, b.item_b) for b in plan.belts)
         self.assertEqual(keys, [("coal", "iron-plate"), ("iron-plate", None)])
 
-    def test_pair_with_item_above_lane_capacity_uses_several_shared_belts(self):
-        plan = self.alloc([{"iron-plate": 2 * LANE - 10, "coal": 100}], "iron-plate", "coal")
+    def test_groups_are_packed_first_fit_decreasing(self):
+        plan = self.alloc([{"iron-plate": 0.6 * USABLE}, {"iron-plate": 0.8 * USABLE}, {"iron-plate": 0.3 * USABLE}], "iron-plate")
         self.assertEqual(len(plan.belts), 2)
-        self.assertTrue(all(b.item_b is not None for b in plan.belts))
-        self.assertAlmostEqual(sum(b.load_a + b.load_b for b in plan.belts), 2 * LANE - 10 + 100)
+        for belt in plan.belts:
+            self.assertLessEqual(belt.load_a, USABLE + 1e-6)
+        self.assertEqual(plan.assignment.count(plan.assignment[1]), 1)  # the 0.8 group sits alone
+
+    def test_discrete_groups_may_need_more_belts_than_the_total_suggests(self):
+        plan = self.alloc([{"iron-plate": 0.8 * USABLE}, {"iron-plate": 0.6 * USABLE}, {"iron-plate": 0.6 * USABLE}], "iron-plate")
+        self.assertEqual(len(plan.belts), 3)  # total 2.0 belts, but no two groups fit together
+        self.assertTrue(all(b.load_a <= USABLE + 1e-6 for b in plan.belts))
+
+    def test_group_larger_than_one_belt_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "iron-plate"):
+            self.alloc([{"iron-plate": 1.2 * USABLE}], "iron-plate")
+
+    def test_pair_group_item_above_lane_capacity_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "iron-plate"):
+            self.alloc([{"iron-plate": LANE + 10, "coal": 100}], "iron-plate", "coal")
 
     def test_belt_count_over_max_raises(self):
         with self.assertRaisesRegex(ValueError, r"Faltam 1 .*iron-plate"):
-            self.alloc([{"iron-plate": 4.5 * USABLE}], "iron-plate", max_belts=4)
+            self.alloc([{"iron-plate": 0.9 * USABLE}] * 5, "iron-plate", max_belts=4)
 
     def test_item_belts_are_counted_across_groups(self):
         with self.assertRaisesRegex(ValueError, "iron-plate"):

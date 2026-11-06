@@ -52,8 +52,18 @@ def _prepare(case: Case, work_root: Path, mod_src: Path, read_data: Path, mods_f
         source = Path(mods_from)
         entries = json.loads((source / "mod-list.json").read_text(encoding="utf-8"))["mods"]
         for item in source.iterdir():
-            if item.is_file() and item.name != "mod-list.json":
+            if item.name == "mod-list.json":
+                continue
+            if item.is_dir():
+                raise ValueError("Mod descompactado no snapshot (%s): só zips são suportados; compacte ou remova da lista." % item.name)
+            if item.name == "mod-settings.dat":  # the game may rewrite it: never share the user's file
+                shutil.copy2(item, mods / item.name)
+                continue
+            try:
                 os.link(item, mods / item.name)
+            except OSError as exc:
+                raise ValueError("Não foi possível ligar %s por hardlink (%s): o snapshot de mods precisa estar no mesmo volume "
+                                 "da pasta de execução do harness." % (item.name, exc)) from exc
     entries = [e for e in entries if e.get("name") != MOD_NAME] + [{"name": MOD_NAME, "enabled": True}]
     (mods / "mod-list.json").write_text(json.dumps({"mods": entries}), encoding="utf-8")
     (run_dir / "config.ini").write_text(

@@ -49,6 +49,23 @@ class BridgeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "iron-plate"):
             run(request([{"name": "gear", "per_min": 2.6 * usable}], items=[{"name": "iron-plate", "max_belts": 1}]))
 
+    def test_preferred_recipe_from_the_user_is_honoured(self):
+        recipes = RECIPES + [{"name": "alt-gear", "ingredients": [{"type": "item", "name": "copper-plate", "amount": 1}],
+                              "products": [{"type": "item", "name": "gear", "amount": 1}]}]
+        rows = dict(ROWS, **{"alt-gear": ["copper-plate"]})
+        payload = dict(request([{"name": "gear", "per_min": 60}]), preferred={"gear": "alt-gear"})
+        out = generate_bus_factory(payload, raw_with_recipes(), recipes, cell_factory=fake_cell(rows))
+        self.assertEqual([lane["item_a"] for lane in out["lanes"]], ["copper-plate"])
+
+    def test_malformed_payloads_give_clear_errors(self):
+        good = [{"name": "gear", "per_min": 60}]
+        for bad in ({"targets": good, "bus": []}, {"targets": good, "bus": {"items": "iron-plate"}},
+                    {"targets": good, "bus": {"items": [{"max_belts": 2}]}},
+                    {"targets": good, "bus": {"items": [{"name": "iron-plate", "max_belts": True}]}},
+                    {"targets": good, "bus": {"items": [{"name": "iron-plate", "max_belts": "2"}]}}):
+            with self.assertRaises(ValueError, msg=str(bad)):
+                run(bad)
+
     def test_defaults_list_basic_and_circuits(self):
         d = bus_defaults(raw_with_recipes())
         self.assertEqual(d["basic"], ["iron-plate", "copper-plate", "steel-plate", "stone", "coal"])

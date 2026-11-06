@@ -364,14 +364,16 @@ def require_input_signals(entities, ports, reach=3.0):
         if len(filters) == 1:
             position = entity.get("position") or {}
             combinators.append((position.get("x", 0), position.get("y", 0), filters[0]))
+    used = set()
     for port in ports:
         if port.get("kind") != "input":
             continue
         kind = "fluid" if port.get("type") == "fluid" else "item"
-        covered = any(
-            f.get("name") == port.get("name") and f.get("type", "item") == kind
-            and abs(x - port.get("x", 0)) <= reach and abs(y - port.get("y", 0)) <= reach
-            for x, y, f in combinators)
-        if not covered:
+        match = next((i for i, (x, y, f) in enumerate(combinators)
+                      if i not in used and f.get("name") == port.get("name") and f.get("type", "item") == kind
+                      and abs(x - port.get("x", 0)) <= reach and abs(y - port.get("y", 0)) <= reach), None)
+        if match is not None:
+            used.add(match)
+        else:
             raise ValueError("Entrada %s sem combinador constante do item (porta em x=%s, y=%s)."
                              % (port.get("name"), port.get("x"), port.get("y")))

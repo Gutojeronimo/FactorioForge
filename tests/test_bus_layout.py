@@ -110,8 +110,8 @@ class LayoutTests(unittest.TestCase):
 
     def test_two_cells_same_item_split_across_belts(self):
         usable = 900 * 0.92
-        # one gear cell needs 0.9 of a belt of iron; a second one pushes the total to 1.8 belts
-        f = build([{"name": "gear", "per_min": 0.45 * usable}, {"name": "circuit", "per_min": 0.9 * usable}])
+        # one gear cell needs 0.9 of a belt of iron; the circuit cell adds 0.3 more, so iron needs two belts
+        f = build([{"name": "gear", "per_min": 0.45 * usable}, {"name": "circuit", "per_min": 0.3 * usable}])
         iron_belts = [b for b in f.lane_plan.belts if b.item_a == "iron-plate"]
         self.assertEqual(len(iron_belts), 2)
         taps = [e for e in f.entities if e["name"] == "splitter"]
@@ -151,6 +151,33 @@ class LayoutTests(unittest.TestCase):
         f = build([{"name": "gear", "per_min": 60}])
         self.assertEqual([p["name"] for p in f.output_ports], ["gear"])
         self.assertEqual(f.wires, [])
+
+    def test_taps_never_exceed_belt_capacity(self):
+        u = 900 * 0.92
+        f = build([{"name": "gear", "per_min": 0.3 * u}, {"name": "circuit2", "per_min": 0.6 * u}, {"name": "widget", "per_min": 0.8 * u}])
+        iron = [b for b in f.lane_plan.belts if b.item_a == "iron-plate"]
+        self.assertEqual(len(iron), 3)
+        self.assertTrue(all(b.load_a <= b.capacity_per_min + 1e-6 for b in iron))
+        self.assertEqual(tiles_of(f.entities), [])
+
+    def test_cell_input_larger_than_one_belt_is_rejected(self):
+        u = 900 * 0.92
+        with self.assertRaisesRegex(ValueError, "iron-plate"):
+            build([{"name": "gear", "per_min": 0.7 * u}])  # 1.4 belts of iron on one cell input belt
+
+    def test_signal_placement_failure_is_loud(self):
+        from bus.layout import place_input_signals
+        blocked = {(x, y) for x in range(-5, 12) for y in range(-5, 12)}
+        port = {"kind": "input", "name": "iron-plate", "type": "item", "x": 3.5, "y": 3.5, "per_min": 10}
+        with self.assertRaisesRegex(ValueError, "iron-plate"):
+            place_input_signals([port], blocked)
+
+    def test_overlap_error_explains_probable_cause(self):
+        rows = dict(ROWS, circuit=["copper-plate", "iron-plate"], circuit2=["iron-plate", "cable"])
+        try:
+            build([{"name": "circuit", "per_min": 60}, {"name": "circuit2", "per_min": 60}], rows=rows)
+        except ValueError as exc:
+            self.assertIn("ordem", str(exc))
 
     def test_target_on_bus_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "iron-plate"):
