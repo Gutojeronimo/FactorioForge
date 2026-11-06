@@ -171,6 +171,15 @@ def command(name, payload):
         result["shared_graphics"] = graphics
         result["shared_icons"] = icons
         return result
+    if name == "generate_bus":
+        from bus.bridge import generate_bus_factory
+        raw = server._catalog()
+        if raw is None:
+            raise ValueError("Carregue os protótipos do Factorio antes de gerar.")
+        return generate_bus_factory(payload, raw, server._recipe_list(raw))
+    if name == "bus_defaults":
+        from bus.bridge import bus_defaults
+        return bus_defaults(server._catalog() or {})
     raise ValueError("Comando desconhecido: " + str(name))
 
 
