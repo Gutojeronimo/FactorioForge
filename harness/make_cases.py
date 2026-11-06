@@ -88,6 +88,41 @@ def splitter_case(catalog):
     return out
 
 
+def vertical_belt(x, y0, y1, belt="transport-belt"):
+    return [{"name": belt, "position": {"x": x, "y": y0 + i}, "direction": SOUTH}
+            for i in range(int(y1 - y0) + 1)]
+
+
+def tap_case(catalog):
+    """Iron on both lanes of bus lane 0 is tapped east, under copper bus lane 1, into four counted sinks;
+    copper on lane 1 must still reach its own sink. Proves splitter + underground crossing keep both lanes."""
+    from bus.tap import build_tap
+    tap = build_tap(0.5, {"x": 5.5, "y": 5.5}, [3.5])
+    skip = set(tap.replaces)
+    ents = [e for e in vertical_belt(0.5, 0.5, 9.5) if (e["position"]["x"], e["position"]["y"]) not in skip]
+    ents += vertical_belt(3.5, 0.5, 9.5) + tap.entities + belt_run(5.5, 5.5, 9.5)
+    ents += [
+        {"name": "fast-inserter", "position": {"x": -0.5, "y": 1.5}, "direction": WEST},    # iron onto lane 0 (east lane)
+        {"name": "fast-inserter", "position": {"x": 1.5, "y": 2.5}, "direction": EAST},     # iron onto lane 0 (west lane)
+        {"name": "fast-inserter", "position": {"x": 4.5, "y": 1.5}, "direction": EAST},     # copper onto lane 1
+        {"name": "fast-inserter", "position": {"x": 8.5, "y": 4.5}, "direction": SOUTH},    # iron sinks around the tap end
+        {"name": "fast-inserter", "position": {"x": 9.5, "y": 4.5}, "direction": SOUTH},
+        {"name": "fast-inserter", "position": {"x": 8.5, "y": 6.5}, "direction": NORTH},
+        {"name": "fast-inserter", "position": {"x": 9.5, "y": 6.5}, "direction": NORTH},
+        {"name": "fast-inserter", "position": {"x": 3.5, "y": 10.5}, "direction": NORTH},   # copper sink at the lane-1 end
+    ]
+    fast = inserter_budget(catalog["inserters"]["fast-inserter"], {"inserter_safety": 1})["per_min"] / 60
+    out = case("09-tap-crossing", ents, {"iron-plate": 2 * fast, "copper-plate": fast}, warmup=600, measure=3600)
+    out["feed"] = [{"item": "iron-plate", "infinite": True, "position": {"x": -1.5, "y": 1.5}},
+                   {"item": "iron-plate", "infinite": True, "position": {"x": 2.5, "y": 2.5}},
+                   {"item": "copper-plate", "infinite": True, "position": {"x": 5.5, "y": 1.5}}]
+    out["sinks"] = [{"position": {"x": 8.5, "y": 3.5}, "count": True}, {"position": {"x": 9.5, "y": 3.5}, "count": True},
+                    {"position": {"x": 8.5, "y": 7.5}, "count": True}, {"position": {"x": 9.5, "y": 7.5}, "count": True},
+                    {"position": {"x": 3.5, "y": 11.5}, "count": True}]
+    out["tolerance"] = {"abs": 0.0, "rel": 0.10}  # fast-inserter chest->belt/belt->chest beat the chest->chest model
+    return out
+
+
 def build(catalog: dict) -> list:
     gear = lambda m, **kw: predict_rate(catalog, m, "iron-gear-wheel", "iron-gear-wheel", **kw)
     speed2 = [{"name": "speed-module", "count": 2}]
@@ -109,6 +144,7 @@ def build(catalog: dict) -> list:
         # Fluid: chemical plant (fluid inputs on its north side) makes sulfur from water + petroleum gas.
         fluid_case(catalog),
         splitter_case(catalog),
+        tap_case(catalog),
         # One beacon north of the machine (3x3, supply area 3 reaches the machine); AM2 accepts speed from beacons.
         case("06-beacon", line("assembling-machine-2", "fast-inserter", "iron-gear-wheel", 3)
              + [{"name": "beacon", "position": {"x": 0.5, "y": -3.5}}],

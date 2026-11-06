@@ -22,6 +22,7 @@ Janela de medição: 300 ticks de aquecimento + 1200 ticks medidos. Produção l
 | 06 montadora 2 + 1 beacon com 2 módulos de velocidade, 3 fileiras | 2,400 | 2,400 | passa |
 | 07 fábrica química: sulfur de água + gás de petróleo (infinity-pipe) | 2,000 | 2,000 | passa |
 | 08 dois inserters básicos → esteira → splitter → 2 sinks contados | 1,667 | 1,717 | passa (+3%); divisão 56 × 57 itens |
+| 09 tap com splitter + underground sob faixa de cobre: ferro nas 2 lanes → 4 sinks; cobre na faixa 1 → 1 sink | ferro 4,615 · cobre 2,308 | ferro 4,467 · cobre 2,500 | passa com tolerância 10% (ferro −3%, cobre +8%) |
 
 ## Inserter: causa provável e correção proposta
 
@@ -35,6 +36,10 @@ A janela curta do caso 04 (1200 ticks) deu 0,450; com 7200 ticks o valor estabil
 | long-handed | 0,97 | 1,20 | 1,25 |
 
 **Aplicada** em `production_math.inserter_budget` (ticks = 2·max(rotação, extensão), sem o acréscimo de 4 ticks), com `tests/test_inserter_budget.py` fixando os valores medidos. Os planos ficam menos conservadores; a margem de segurança configurável (padrão 0,8) continua valendo. Após a mudança, os cinco casos passam (suíte: 159 testes).
+
+## Tap com splitter (marco 1 do barramento)
+
+O caso 09 constrói duas faixas verticais de barramento (espaçamento de 3 colunas), um splitter na faixa 0, uma curva e um par de undergrounds que atravessa a faixa 1 até quatro sinks contados. O ferro chegou a 4,47/s, **acima do limite de uma lane (≈2,3/s)**: o splitter e o underground preservam as duas lanes. O cobre da faixa 1 seguiu até o seu sink a 2,50/s, ou seja, o cruzamento não interrompe a faixa atravessada. O desvio de +8% no cobre vem do modelo de inserter (fast-inserter entre baú e esteira rende mais que o cálculo baú→baú), não do tap.
 
 ## Não coberto ainda
 
