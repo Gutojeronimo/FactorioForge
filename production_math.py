@@ -36,7 +36,7 @@ def effects(raw, machine, recipe, recipe_name, requested):
                     continue
                 if math.isfinite(value) and key in weights:
                     weights[key] = value
-        choices = [m for m in raw.get('module', {}).values() if module_allowed(m, machine, recipe, recipe_name)]
+        choices = [m for m in raw.get('module', {}).values() if not m.get('hidden') and module_allowed(m, machine, recipe, recipe_name)]
         def score(module):
             e = module.get('effect', {})
             n = lambda k: float(e.get(k, {}).get('bonus', 0) if isinstance(e.get(k, {}), dict) else e.get(k, 0))
