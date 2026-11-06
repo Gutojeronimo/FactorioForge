@@ -1,6 +1,6 @@
 import unittest
 
-from ui_catalog import group_products
+from ui_catalog import group_products, visible
 
 BASE = {"base", "space-age", "quality", "elevated-rails"}
 
@@ -60,6 +60,16 @@ class GroupProductsTest(unittest.TestCase):
         result = group_products([recipe("r", "p")], icon=lambda n: "/i/" + n)
         self.assertEqual(result[0]["icon"], "/i/p")
         self.assertEqual(result[0]["variants"][0]["icon"], "/i/r")
+
+
+class VisibleTest(unittest.TestCase):
+    def test_visible_rejects_hidden_flag_and_field(self):
+        self.assertFalse(visible({"hidden": True}))
+        self.assertFalse(visible({"flags": ["hidden"]}))
+
+    def test_visible_accepts_normal_proto(self):
+        self.assertTrue(visible({"name": "transport-belt"}))
+        self.assertTrue(visible({"hidden": False, "flags": ["placeable-neutral"]}))
 
 
 if __name__ == "__main__":

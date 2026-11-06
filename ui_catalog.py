@@ -3,6 +3,10 @@
 BASE_ORIGINS = {"base", "space-age", "quality", "elevated-rails"}
 
 
+def visible(proto):
+    return proto.get("hidden") is not True and "hidden" not in proto.get("flags", [])
+
+
 def _variant_rank(recipe, product, origin):
     name = recipe["name"]
     if recipe.get("category") == "recycling" or name.startswith("unpack-"):

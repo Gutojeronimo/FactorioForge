@@ -6,6 +6,7 @@ import traceback
 
 import server
 from game_graphics import GameGraphics
+from ui_catalog import visible
 
 server.STATE.update(server._read_settings())
 graphics = None
@@ -51,6 +52,8 @@ def equipment_data():
     for key, category in (("belt", "transport-belt"), ("splitter", "splitter"), ("input_inserter", "inserter"), ("output_inserter", "inserter"), ("long_inserter", "inserter"), ("pole", "electric-pole"), ("requester", "logistic-container"), ("provider", "logistic-container"), ("pipe", "pipe"), ("pipe_to_ground", "pipe-to-ground"), ("modules", "module")):
         choices = []
         for name, proto in raw.get(category, {}).items():
+            if not visible(proto):
+                continue
             if (category != "module" and name not in placeable) or "not-blueprintable" in proto.get("flags", []):
                 continue
             details = name.replace("-", " ")
@@ -86,7 +89,7 @@ def equipment_data():
     for group in raw.values():
         if isinstance(group, dict):
             for name, proto in group.items():
-                if isinstance(proto, dict) and proto.get("fuel_value") and art.icon(name):
+                if isinstance(proto, dict) and visible(proto) and proto.get("fuel_value") and art.icon(name):
                     fuels[name] = {"name": name, "icon": art.icon(name), "details": name + "\n" + str(proto["fuel_value"]), "fuel_categories": proto.get("fuel_categories") or [proto.get("fuel_category", "chemical")]}
     output["fuel"] = list(fuels.values())
     return output
