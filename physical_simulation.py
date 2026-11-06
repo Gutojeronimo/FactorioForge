@@ -9,6 +9,15 @@ from physical_factory import assert_integrity
 from temporal_simulation import inserter_cycle, _fill_ratio
 
 
+
+# Discrete events (whole crafts, inserter swings) make a line sized exactly at the target measure a hair
+# below it (e.g. 299.7/min for 300). A real shortfall is larger than this.
+TARGET_TOLERANCE = 0.01
+
+
+def meets_target(sustained: float, target: float, tolerance: float = TARGET_TOLERANCE) -> bool:
+    return sustained + 1e-9 >= target * (1 - tolerance)
+
 def _cancelled(cancel):
     return bool(cancel and (cancel.is_set() if hasattr(cancel, "is_set") else cancel()))
 
@@ -537,7 +546,7 @@ def simulate_physical(model, config=None, cancel=None):
                         "input_inventory": {n: {"min": state["inventory_min"].get(n, 0), "avg": state["inventory_sum"][n] / max(1, measurement), "max": state["inventory_max"].get(n, 0)} for n in ingredients}})
     starvation = sum(m["waiting_ingredients_seconds"] + m["waiting_fuel_seconds"] for m in metrics)
     blocked = sum(m["output_blocked_seconds"] for m in metrics)
-    target_met = sustained + 1e-9 >= float(plan["target_per_min"])
+    target_met = meets_target(sustained, float(plan["target_per_min"]))
     if cancelled:
         status = "CANCELLED"
     elif timeout or memory_exceeded or not conservation:
