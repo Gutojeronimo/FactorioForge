@@ -4,11 +4,13 @@ Aplicativo Windows nativo com interface C# / WPF. O motor Python roda como proce
 
 Abra **app/ForgePlan.exe**, **ForgePlan.cmd** ou **start.ps1**. Requer Python 3.10+ e .NET Desktop Runtime 10; ambos estão disponíveis neste computador. `FORGEPLAN_PYTHON` permite escolher outro executável Python.
 
-1. Escolha **Mods ativos · mod-list.json** para usar os mods marcados na pasta configurada, ou escolha um mundo na lista de `%APPDATA%\Factorio\saves` para usar os mods e configurações daquele save. Clique em **Carregar perfil de mods**. Também é possível procurar outro `.zip`. Diferenças de versão só usam arquivos locais da mesma versão principal/secundária com a opção explícita marcada.
-2. Filtre por grupo e subgrupo do catálogo carregado, use a busca e clique no ícone da receita. Passe o mouse nos ícones para ver os nomes e distinguir receitas alternativas.
-3. Selecione a saída, inclusive fluido, e informe a meta por minuto. **Adicionar fábrica independente** guarda essa receita, saída, meta, máquina e configuração. Adicione várias e gere cada layout isoladamente; erros de uma fábrica não cancelam as demais. **Copiar livro** reúne os blueprints concluídos. Em **Equipamentos**, escolha máquina, esteiras, inseridores, canos e poste. Configure módulos manualmente ou deixe o app selecionar módulos compatíveis. Com receitas fluidas, as conexões são feitas nas portas reais da máquina.
-4. Na aba **Layout**, escolha um perfil de uso, logística, quantidade de máquinas por linha, espaçamento e orientação. Gere a prévia. A roda do mouse muda o zoom; arrastar move a câmera.
-5. Copie o blueprint ou exporte um TXT. Também é possível salvar a prévia em PNG.
+A janela segue o estilo do jogo. Menu: **Arquivo**, **Perfil**, **Gerar**, **Exportar** e **Ajuda**. A coluna **Produtos** à esquerda tem um slot por produto, com as variantes de receita de cada um; o centro mostra a prévia 2D; as abas à direita são **Fábrica**, **Barramento**, **Fila**, **Resumo**, **Balanceador** e **IA**. A fonte do jogo é carregada da instalação do Factorio, com Segoe UI como alternativa.
+
+1. Em **Perfil**, use os mods ativos (`mod-list.json`) ou escolha um mundo de `%APPDATA%\Factorio\saves` (ou outro `.zip`) e clique em **Carregar perfil**. Diferenças de versão só usam arquivos locais da mesma versão principal/secundária com a opção explícita marcada.
+2. Na coluna **Produtos**, busque e escolha o produto e a variante de receita. Informe a meta por minuto ou por segundo. Máquinas sem suporte aparecem esmaecidas, com o motivo na dica.
+3. Na aba **Fábrica**, ajuste os slots de máquina, esteiras, inseridores, canos, postes e módulos, além de logística, perfil de otimização e geometria. Gere em **Gerar**.
+4. Veja o resultado em **Resumo** e na prévia (roda do mouse muda o zoom; arrastar move a câmera). Em **Exportar**, copie o blueprint ou o livro, ou salve TXT e a prévia em PNG.
+5. **Fila** guarda várias fábricas independentes (uma falha não cancela as demais) e **Copiar livro** reúne os blueprints concluídos. **Barramento**, **Balanceador** e **IA** têm abas próprias.
 
 As strings trazem uma descrição do blueprint com receita, meta estimada, máquinas/módulos, perfil de otimização, versão do jogo, save ou perfil e mods ativos, além de entradas/saídas. A descrição afirma que o throughput ainda não foi validado em operação.
 
@@ -77,6 +79,7 @@ As requisições usam contexto de 4096 tokens, resposta estruturada curta e thin
 - `server.py`: motor de catálogo e planejamento reutilizado pela versão desktop.
 - `web/`: interface anterior, preservada como código de referência.
 - Os testes do catálogo e da pontuação de layouts usam `python -m unittest discover -s tests`.
+- `tools/ui-smoke.ps1` abre o app compilado (padrão `app-next/ForgePlan.exe`), espera a janela, grava um PNG em `.runtime/ui-smoke.png` e falha se a janela for menor que 1000×600, o processo sair, `.runtime/desktop-error.log` mudar ou os controles principais não existirem na árvore de UI Automation. Em algumas sessões a captura por `PrintWindow` sai em branco mesmo com a interface funcionando; nesse caso a checagem da árvore de UI é a evidência.
 
 Não distribua `.runtime` nem os assets do jogo/mods junto com o código.
 ## Balanceadores
