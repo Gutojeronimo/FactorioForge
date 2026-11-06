@@ -47,6 +47,13 @@ class LanePlanTests(unittest.TestCase):
         self.assertEqual(len(plan.belts), 1)
         self.assertEqual({plan.belts[0].item_a, plan.belts[0].item_b}, {"coal", "iron-ore-like"})
 
+    def test_share_pairs_restricts_sharing(self):
+        d = demand(("smelt", {"iron-ore-like": 300, "coal": 200}))
+        plan = allocate_lanes(d, bus("coal", "iron-ore-like"), CATALOG, share_pairs=set())
+        self.assertEqual(len(plan.belts), 2)
+        plan = allocate_lanes(d, bus("coal", "iron-ore-like"), CATALOG, share_pairs={frozenset(("coal", "iron-ore-like"))})
+        self.assertEqual(len(plan.belts), 1)
+
     def test_item_above_lane_capacity_gets_own_belt(self):
         plan = allocate_lanes(demand(("smelt", {"a": LANE + 10, "coal": 100})), bus("a", "coal"), CATALOG)
         self.assertEqual(len(plan.belts), 2)

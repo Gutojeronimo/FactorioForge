@@ -52,6 +52,11 @@ class DemandTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "iron-plate"):
             plan_demand(targets("iron-plate", 6000), default_bus(), RECIPES)
 
+    def test_cell_reports_product_and_output_rate(self):
+        d = plan_demand(targets("iron-gear-wheel", 60), default_bus(), RECIPES)
+        self.assertEqual(d.cells[0].product, "iron-gear-wheel")
+        self.assertAlmostEqual(d.cells[0].output_per_min, 60)
+
     def test_totals_match_sum_of_cells(self):
         d = plan_demand(targets("electronic-circuit", 60), default_bus(), RECIPES)
         for name, total in d.totals.items():

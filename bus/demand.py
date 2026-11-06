@@ -11,6 +11,8 @@ class CellDemand:
     crafts_per_min: float
     consumes: dict = field(default_factory=dict)
     local_inputs: dict = field(default_factory=dict)
+    product: str = ""
+    output_per_min: float = 0.0
 
 
 @dataclass
@@ -27,14 +29,17 @@ def plan_demand(targets: list, bus, recipes: list) -> BusDemand:
             raise ValueError("%s já está no barramento; não há o que produzir." % target["name"])
     plan = plan_targets(targets, recipes, raw_items=names)
     by_name = {r["name"]: r for r in recipes if isinstance(r, dict) and r.get("name")}
-    crafts = defaultdict(float)
+    crafts, outputs = defaultdict(float), {}
     for step in plan["steps"]:
         crafts[step["recipe"]] += step["crafts_per_min"]
+        product, amount = outputs.get(step["recipe"], (step["product"], 0.0))
+        outputs[step["recipe"]] = (product, amount + step["output_per_min"])
     unproduced = {entry["name"] for entry in plan["raw_inputs"]} - names
     warnings = list(plan["warnings"])
     cells = []
     for recipe_name in sorted(crafts):
-        cell = CellDemand(recipe_name, crafts[recipe_name])
+        cell = CellDemand(recipe_name, crafts[recipe_name], product=outputs[recipe_name][0],
+                          output_per_min=outputs[recipe_name][1])
         for ingredient in by_name[recipe_name].get("ingredients", []):
             if ingredient.get("type", "item") != "item":
                 continue

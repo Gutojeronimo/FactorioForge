@@ -31,7 +31,7 @@ def _consumers(demand):
     return {name: frozenset(cells) for name, cells in result.items()}
 
 
-def allocate_lanes(demand, bus, catalog: dict, safety_margin: float = 0.08) -> LanePlan:
+def allocate_lanes(demand, bus, catalog: dict, safety_margin: float = 0.08, share_pairs=None) -> LanePlan:
     speed = catalog["belts"][bus.belt]["speed"]
     usable = belt_capacity(speed, safety_margin)[1]
     lane = usable / 2
@@ -54,7 +54,8 @@ def allocate_lanes(demand, bus, catalog: dict, safety_margin: float = 0.08) -> L
         if first in paired:
             continue
         for second in shareable[index + 1:]:
-            if second not in paired and consumers.get(first) == consumers.get(second):
+            if (second not in paired and consumers.get(first) == consumers.get(second)
+                    and (share_pairs is None or frozenset((first, second)) in share_pairs)):
                 paired.update((first, second))
                 plan.belts.append(Belt(first, second, usable, demand.totals[first], demand.totals[second]))
                 plan.free_per_min[first] = lane - demand.totals[first]
