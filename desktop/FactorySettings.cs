@@ -151,6 +151,7 @@ sealed partial class MainWindow
         var report = new StackPanel { Margin = new Thickness(12) }; report.Children.Add(UI.Text("Resumo da linha", 19)); report.Children.Add(summary);
         settingsTabs.Items.Add(new TabItem { Header = "Resumo", Content = UI.Scroll(report) });
         settingsTabs.Items.Add(new TabItem { Header = "Balanceadores", Content = UI.Scroll(balancers) });
+        settingsTabs.Items.Add(new TabItem { Header = "Barramento", Content = UI.Scroll(BuildBusPanel()) });
         settingsTabs.SelectedIndex = 1;
         generationTimer.Tick += (_, _) => status.Text = generationStage + " · " + generationWatch.Elapsed.ToString(@"mm\:ss");
         return settingsTabs;
