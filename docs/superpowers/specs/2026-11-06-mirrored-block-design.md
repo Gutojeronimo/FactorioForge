@@ -16,11 +16,11 @@ Já corrigido antes deste spec (commits em `main`): meta aceita com 1% de toler�
 
 ## 3. Critérios de sucesso
 
-1. Com arranjo **automático**, toda receita dentro do escopo gera um bloco espelhado. As fornalhas 2×2 a combustível continuam usando o bloco da biblioteca do usuário.
+1. Com arranjo **automático**, toda receita dentro do escopo tem o bloco espelhado como **candidato** na busca de layouts; ele é escolhido quando tem a melhor pontuação entre as alternativas válidas do perfil (não é vencedor obrigatório). As fornalhas 2×2 a combustível continuam usando o bloco da biblioteca do usuário.
 2. A saída final do bloco tem as **duas lanes** ocupadas, cada fileira numa lane.
-3. Para o mesmo número de máquinas, a geometria é equivalente à do array de fundição do handbook (`[item=steel-furnace] 30/s`, 48 fornalhas em ~52×11 tiles): mesmas fileiras, esteira central, saídas externas, inserters e postes nas mesmas faixas (§7).
-4. No jogo (harness), a taxa medida fica dentro de 10% da meta e a saída mostra as duas lanes ocupadas, para: uma receita de 1 insumo (engrenagem) e uma de 2 insumos (fornalha de aço a carvão ou granada).
-5. O status de simulação do bloco da biblioteca deixa de ser "instável" para o caso de ferro a 300/min, ou a causa fica documentada.
+3. Para a mesma receita, máquina e throughput do array de fundição do handbook (`[item=steel-furnace] 30/s`), a estrutura é equivalente (2 fileiras, esteira central, 2 saídas externas) e as métricas normalizadas por produção (esteiras, inserters e postes por máquina; área por item/s) são registradas lado a lado; as dimensões são informativas, não critério de aprovação (§7).
+4. No jogo (harness), a taxa medida fica dentro de 10% da meta e o fluxo que **atravessa** cada lane da saída final (contagem de travessias, sem dupla contagem) fica dentro de 10% da produção esperada da fileira correspondente, para: uma receita de 1 insumo (engrenagem) e uma de 2 insumos (granada).
+5. O status de simulação do bloco da biblioteca deixa de ser "instável" para o caso de ferro a 300/min. Se a causa for do simulador e também afetar o bloco espelhado, a correção é bloqueante para considerar o bloco validado; só pode ficar documentada se não afetar o bloco novo.
 
 ## 4. Geometria
 
@@ -43,7 +43,19 @@ Já corrigido antes deste spec (commits em `main`): meta aceita com 1% de toler�
 
 ## 5. Capacidade
 
-Máquinas por bloco = mínimo de: cada insumo ≤ capacidade útil de uma lane da esteira central; saída total ≤ capacidade útil de duas lanes; capacidade dos inserters por máquina; limite de comprimento do perfil. Se a meta exigir mais máquinas que um bloco, o gerador sugere esteira mais rápida e, se ainda não couber, gera blocos repetidos num Book com aviso (comportamento atual).
+Máquinas por bloco = maior N que satisfaz, separadamente:
+- para cada insumo i: demanda_i(N) ≤ capacidade útil da lane que ele ocupa (ou das duas lanes, se for o único insumo e precisar delas);
+- produção da fileira superior ≤ capacidade útil de uma lane da saída; idem para a fileira inferior; produção total ≤ duas lanes;
+- capacidade dos inserters de entrada e saída por máquina (`production_math.inserter_budget`);
+- limite de comprimento do perfil.
+
+Exemplo de referência (teste): ciência vermelha 500/min com montadora 2 e esteira amarela (450/min por lane): 56 máquinas exigem 504/min de cobre e 504/min de engrenagens, acima de uma lane; o bloco único é recusado e dois blocos de 28 (252/min por insumo, 252/min por fileira de saída) são viáveis.
+
+Um insumo só: se a demanda cabe numa lane, ele usa uma lane (sem side-load extra); só usa as duas quando precisa.
+
+Uma máquina: bloco de uma fileira sem junção em U.
+
+Se a meta exigir mais que um bloco, o gerador sugere esteira mais rápida e, se ainda não couber, gera blocos repetidos num Book com aviso; cada bloco declara suas próprias portas de entrada dimensionadas para a sua parte da demanda, e a soma das portas cobre a demanda total.
 
 ## 6. Componentes
 
@@ -57,7 +69,7 @@ Máquinas por bloco = mínimo de: cada insumo ≤ capacidade útil de uma lane d
 
 ## 7. Referências
 
-Os livros do usuário ficam em `.runtime/references/` (fora do Git; são blueprints de terceiros): *Factory handbook*, *Brian's city*, *Rail Blocks (Space Age) v4.13*. O teste de referência decodifica o handbook, localiza o array de fundição de aço e compara com o bloco gerado para 48 máquinas: número de fileiras de máquinas (2), esteira central única, duas esteiras externas, largura e altura dentro de ±15%.
+Os livros do usuário ficam em `.runtime/references/` (fora do Git; são blueprints de terceiros): *Factory handbook*, *Brian's city*, *Rail Blocks (Space Age) v4.13*. O teste de referência decodifica o handbook, localiza o array de fundição de aço e gera o bloco espelhado para a mesma receita, máquina e throughput. Aprova pela estrutura (2 fileiras de máquinas, esteira central única, duas esteiras externas) e registra, sem aprovar por elas, as métricas normalizadas: esteiras, inserters e postes por máquina e área por item/s, além de largura e altura.
 
 ## 8. Erros
 
@@ -67,6 +79,6 @@ Os livros do usuário ficam em `.runtime/references/` (fora do Git; são bluepri
 
 ## 9. Riscos
 
-1. Lanes da saída: o sentido das curvas é a parte mais sujeita a erro; coberta por teste e pelo harness.
+1. Lanes da saída: o sentido das curvas e qualquer side-load na junção são a parte mais sujeita a erro. Um rastreador independente do construtor percorre as entidades exportadas (inserter de saída → esteiras → curvas → saída final) e determina a lane de cada fileira; o harness confirma no jogo.
 2. Simulação temporal: o status "instável" do bloco da biblioteca pode ter a mesma causa no bloco novo (aquecimento curto ou modelo de side-load); investigar primeiro.
 3. Máquinas grandes (4×4+) aumentam a altura do bloco; a comparação com o handbook só cobre 2×2.
