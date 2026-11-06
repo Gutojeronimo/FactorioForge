@@ -15,6 +15,7 @@ class Case:
     ticks_measure: int
     seed: int
     feed: list = field(default_factory=list)
+    sinks: list = field(default_factory=list)
     expected: dict = field(default_factory=dict)
     tolerance: dict = field(default_factory=lambda: {"abs": 0.0, "rel": 0.05})
 
@@ -47,11 +48,15 @@ def validate_case(data: dict) -> Case:
     for entry in feed:
         if not isinstance(entry, dict) or ("item" in entry) == ("fluid" in entry):
             raise ValueError("cada feed precisa de item ou fluid (exatamente um)")
+    sinks = data.get("sinks", [])
+    if not isinstance(sinks, list) or any(
+            not isinstance(s, dict) or not isinstance(s.get("position"), dict) for s in sinks):
+        raise ValueError("cada sink precisa de position")
     expected = data.get("expected", {})
     if not isinstance(expected, dict):
         raise ValueError("expected deve ser um objeto")
     return Case(case_id, blueprint, _positive_int(data, "ticks_warmup", True), _positive_int(data, "ticks_measure"),
-                seed, feed, expected, data.get("tolerance") or {"abs": 0.0, "rel": 0.05})
+                seed, feed, sinks, expected, data.get("tolerance") or {"abs": 0.0, "rel": 0.05})
 
 
 def load_case(path: Path) -> Case:

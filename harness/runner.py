@@ -11,6 +11,7 @@ REPO = Path(__file__).resolve().parent.parent
 MOD_SRC = REPO / "factorio-mod" / "forgeplan-harness"
 MOD_NAME = "forgeplan-harness"
 TICK_MARGIN = 30
+LIST_FIELDS = ("built", "rejected", "machines", "errors")
 
 
 def _prefix(factorio_exe):
@@ -68,7 +69,11 @@ def run_case(case: Case, factorio_exe, work_root: Path, timeout_s: int = 600, mo
     result_file = run_dir / "user-data" / "script-output" / "result.json"
     if not result_file.is_file():
         return {"case_id": case.id, "errors": ["result.json não foi gerado; veja user-data/factorio-current.log"]}
-    return json.loads(result_file.read_text(encoding="utf-8"))
+    result = json.loads(result_file.read_text(encoding="utf-8"))
+    for key in LIST_FIELDS:  # Lua serialises empty tables as {}
+        if result.get(key) == {}:
+            result[key] = []
+    return result
 
 
 if __name__ == "__main__":

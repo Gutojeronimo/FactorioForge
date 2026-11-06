@@ -20,7 +20,7 @@ FAKE = textwrap.dedent('''
             time.sleep(30)
         if behaviour == "ok":
             out.mkdir(parents=True, exist_ok=True)
-            (out / "result.json").write_text(json.dumps({"case_id": "c1", "built": [], "rejected": [], "measured": {"x": 1.0}, "errors": []}))
+            (out / "result.json").write_text('{"case_id":"c1","built":{},"rejected":{},"machines":{},"measured":{"x":1.0},"errors":{}}')
 ''')
 
 
@@ -72,6 +72,8 @@ class RunnerTests(unittest.TestCase):
         result = self.run_it()
         self.assertEqual(result["measured"], {"x": 1.0})
         self.assertEqual(result["errors"], [])
+        for key in ("built", "rejected", "machines"):
+            self.assertEqual(result[key], [], key)
 
     def test_missing_result_returns_error(self):
         (self.root / "c1").mkdir(parents=True)

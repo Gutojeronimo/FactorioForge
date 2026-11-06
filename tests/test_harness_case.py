@@ -33,6 +33,13 @@ class CaseTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validate_case(valid(feed=[bad]))
 
+    def test_sinks_default_empty_and_validated(self):
+        self.assertEqual(validate_case(valid()).sinks, [])
+        with self.assertRaises(ValueError):
+            validate_case(valid(sinks=[{"nopos": 1}]))
+        ok = validate_case(valid(sinks=[{"position": {"x": 1, "y": 2}}]))
+        self.assertEqual(ok.sinks[0]["position"]["x"], 1)
+
     def test_seed_must_be_int(self):
         with self.assertRaises(ValueError):
             validate_case(valid(seed="1"))
