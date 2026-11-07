@@ -1,5 +1,6 @@
 """Harness case definition and validation."""
 import json
+import math
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -43,7 +44,7 @@ def _module_list(data, key):
 
 
 def _number(value):
-    return not isinstance(value, bool) and isinstance(value, (int, float))
+    return not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(value)
 
 
 def _lane_probes(data):

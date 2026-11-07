@@ -1343,6 +1343,17 @@ def aggregate_records_from_layouts(results):
     return [{"name": name, "count": count} for name, count in sorted(totals.items())]
 
 
+# Warnings factory_planner.build derives from its own row/column geometry.
+_INITIAL_GEOMETRY_WARNINGS = (
+    " linhas iguais compartilham a demanda",
+    "Nenhuma geometria atende ao limite de proporção",
+    "Layout automático limitado à proporção",
+    "Limite automático de proporção",
+    "Área respeitada com proporção",
+    "Geometria ajustada para caber",
+)
+
+
 def _generate(payload: dict) -> dict:
     raw = _catalog()
     if raw is None:
@@ -1557,9 +1568,13 @@ def _generate(payload: dict) -> dict:
         search_cfg = dict(cfg)
         # AI columns are a candidate via initial_layout, not a manual user constraint.
         temporal_search = optimize_factory(raw, plan, search_cfg, temporal_config, game_version, layout, cancel=_cancellation_probe(payload))
+        initial_geometry = (temporal_search.get("initial_topology"), layout["columns"], layout["rows"])
         physical_model = temporal_search["model"]
         layout = temporal_search["layout"]
         entities, ports = physical_model["entities"], physical_model["ports"]
+        if (temporal_search["selected_topology"], layout["columns"], layout["rows"]) != initial_geometry:
+            # The initial build_factory geometry was discarded: its rows/aspect warnings no longer apply.
+            warnings = [w for w in warnings if not any(marker in w for marker in _INITIAL_GEOMETRY_WARNINGS)]
         warnings = list(dict.fromkeys(warnings + temporal_search["warnings"]))
         layout["physical_search_metrics"] = temporal_search["search_metrics"]
         layout["physical_selected_is_validated"] = temporal_search["selected_is_validated"]
@@ -1613,6 +1628,7 @@ def _generate(payload: dict) -> dict:
             label = "Entrada" if port["kind"] == "input" else "Saída"
             warnings.append(f"{label} de {port['name']} exige as duas faixas da {cfg.get('belt')}: "
                             f"{rate:.1f}/min excede {lane_capacity:.1f}/min por faixa.")
+        warnings = list(dict.fromkeys(warnings))  # Repeated blocks share identical port warnings.
     if physical_model is not None:
         entities = export_entities(physical_model, game_version)
         blueprint = export_blueprint(physical_model, game_version,

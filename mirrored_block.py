@@ -68,6 +68,8 @@ def rejection_reason(raw, plan, cfg):
         return 'O bloco espelhado usa esteiras; o modo selecionado é outro.'
     if int(cfg.get('columns', 0) or 0) > 0 or str(cfg.get('arrangement', 'auto')) != 'auto':
         return 'Arranjo manual (colunas manuais ou arranjo fixo) não usa o bloco espelhado.'
+    if int(cfg.get('rotation', 0) or 0) % 4:
+        return 'O bloco espelhado só é gerado no sentido Oeste → Leste; a rotação escolhida não usa o bloco espelhado.'
     if any(e.get('type', 'item') != 'item' for e in plan.get('ingredients', []) + plan.get('products', [])):
         return 'Receita com fluido fica fora do bloco espelhado.'
     if not 1 <= len(plan.get('ingredients', [])) <= 2:
@@ -234,7 +236,9 @@ def build(raw, plan, requested):
         output_y, output_lanes = y_top, {'top': 'left'}
     # Machines and their arms; slot 0 of every machine edge stays free for poles.
     strips = []  # (y, free tiles, targets)
-    module_items = [{'id': {'name': n, 'quality': 'normal'}, 'items': {'in_inventory': [{'inventory': 4, 'stack': slot, 'count': 1}]}}
+    defines = raw.get('defines')
+    module_inventory = int(defines.get('inventory', {}).get('crafter_modules', 4)) if isinstance(defines, dict) else 4
+    module_items = [{'id': {'name': n, 'quality': 'normal'}, 'items': {'in_inventory': [{'inventory': module_inventory, 'stack': slot, 'count': 1}]}}
                     for slot, n in enumerate(plan.get('modules') or [])]
     for row, machines in enumerate(rows):
         upper = row == 0
@@ -269,21 +273,22 @@ def build(raw, plan, requested):
     # Ports, each input with its own constant combinator.
     ports = []
     a_lane = 'right' if rest or a['per_min'] <= lane + 1e-9 else 'both'
+    lane_text = {'right': 'lane direita', 'left': 'lane esquerda', 'both': 'duas lanes'}
     combinator = add(cfg['constant_combinator'], -3, yc + 1, **{k: v for k, v in signal_combinator(a['name'], a['per_min'], 0, 0, cfg['constant_combinator']).items() if k == 'control_behavior'})
     ports.append(dict(kind='input', name=a['name'], type='item', per_min=a['per_min'], belt_index=0, lane=a_lane,
                       belt_position=dict(x=-2.5, y=yc + .5), direction=2, x=combinator['position']['x'], y=combinator['position']['y'],
-                      note=f"Entrada {a['name']} · {a['per_min']:.1f}/min · faixa {a_lane} da esteira central"))
+                      note=f"Entrada {a['name']} · {a['per_min']:.1f}/min · {lane_text[a_lane]} da esteira central"))
     if rest:
         b = rest[0]
         combinator = add(cfg['constant_combinator'], -3, yc - 1, **{k: v for k, v in signal_combinator(b['name'], b['per_min'], 0, 0, cfg['constant_combinator']).items() if k == 'control_behavior'})
         ports.append(dict(kind='input', name=b['name'], type='item', per_min=b['per_min'], belt_index=0, lane='both',
                           belt_position=dict(x=-1.5, y=yc - .5), direction=4, x=combinator['position']['x'], y=combinator['position']['y'],
-                          note=f"Entrada {b['name']} · {b['per_min']:.1f}/min · side-load na faixa esquerda da esteira central"))
+                          note=f"Entrada {b['name']} · {b['per_min']:.1f}/min · side-load na lane esquerda da esteira central"))
     product = _items(plan['products'])[0]
     ports.append(dict(kind='output', name=product['name'], type='item', per_min=product['per_min'], belt_index=0, lane='both',
                       belt_position=dict(x=W - .5, y=output_y + .5), direction=2, x=W - .5, y=output_y + .5,
                       note=f"Saída {product['name']} · {product['per_min']:.1f}/min · "
-                           + ', '.join(f'fileira {"superior" if k == "top" else "inferior"} na faixa {v}' for k, v in output_lanes.items())))
+                           + ', '.join(f'fileira {"superior" if k == "top" else "inferior"} na {lane_text[v]}' for k, v in output_lanes.items())))
     cfg.update(external_power_connectors=[pole_chain[0]['entity_number']])
     model = from_entities(raw, plan, entities, ports, wires, 'mirrored_block', cfg)
     m = model['metrics']
@@ -300,4 +305,7 @@ def build(raw, plan, requested):
                           'power_connected': not model['errors']},
                   bill_of_materials=[dict(name=n, count=c) for n, c in Counter(e['name'] for e in entities).items()])
     warnings = ['Bloco espelhado: duas fileiras com esteira central e saída em U; cada fileira ocupa uma faixa da saída.'] if two_rows else []
+    if rest:
+        # A full input A (both lanes) blocks B's side-load onto the left lane of the central belt.
+        warnings.append(f"A entrada de {a['name']} precisa chegar só pela lane direita; a lane esquerda é preenchida por {rest[0]['name']}.")
     return model, layout, warnings

@@ -74,7 +74,10 @@ class CaseTests(unittest.TestCase):
         self.assertIn("lane_probes", ok.to_dict())
         for bad in ("x", [{"x": 1, "y": 2}], [{"position": {"x": 1}}], [{"position": {"x": "1", "y": 2}}],
                     [{"position": {"x": True, "y": 2}}], [{"position": {"x": 1, "y": 2}, "expected": {"middle": 1}}],
-                    [{"position": {"x": 1, "y": 2}, "expected": {"left": -1}}], ["pos"]):
+                    [{"position": {"x": 1, "y": 2}, "expected": {"left": -1}}], ["pos"],
+                    [{"position": {"x": float("nan"), "y": 2}}], [{"position": {"x": 1, "y": float("inf")}}],
+                    [{"position": {"x": 1, "y": 2}, "expected": {"left": float("nan")}}],
+                    [{"position": {"x": 1, "y": 2}, "expected": {"right": float("inf")}}]):
             with self.assertRaises(ValueError, msg=repr(bad)):
                 validate_case(valid(lane_probes=bad))
 

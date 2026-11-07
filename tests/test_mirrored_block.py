@@ -87,6 +87,22 @@ class MirroredBlockScopeTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, word):
                 mirrored_block.build(raw, plan, cfg)
 
+    def test_rotated_layout_is_rejected(self):
+        # The block is only built West -> East; a rotated request would diverge from the preview.
+        for rotation in (1, 2, 3):
+            raw, plan, cfg = fixture()
+            cfg["rotation"] = rotation
+            self.assertIn("rotação", mirrored_block.rejection_reason(raw, plan, cfg))
+            self.assertFalse(mirrored_block.matches(raw, plan, cfg))
+            with self.assertRaisesRegex(ValueError, "rotação"):
+                mirrored_block.build(raw, plan, cfg)
+        raw, plan, cfg = fixture()
+        cfg["rotation"] = 4
+        self.assertTrue(mirrored_block.matches(raw, plan, cfg))
+        from physical_optimization import mirrored_equipment_warning
+        cfg["rotation"] = 1
+        self.assertEqual(mirrored_equipment_warning(raw, plan, cfg), "")
+
     def test_missing_related_underground_is_rejected_but_splitter_is_not_needed(self):
         raw, plan, cfg = fixture()
         del raw["splitter"]
@@ -299,6 +315,42 @@ class MirroredBlockCapacityTest(unittest.TestCase):
         inputs = [p for p in layout["ports"] if p["kind"] == "input"]
         self.assertEqual([p["lane"] for p in inputs], ["right"])
 
+    def test_two_inputs_warn_that_a_must_arrive_on_the_right_lane(self):
+        raw, plan, cfg = fixture(count=6)
+        _, layout, warnings = mirrored_block.build(raw, plan, cfg)
+        expected = ("A entrada de copper-plate precisa chegar só pela lane direita; "
+                    "a lane esquerda é preenchida por iron-gear-wheel.")
+        self.assertIn(expected, warnings)
+        notes = {p["name"]: p["note"] for p in layout["ports"]}
+        self.assertIn("lane direita da esteira central", notes["copper-plate"])
+        self.assertIn("lane esquerda da esteira central", notes["iron-gear-wheel"])
+        self.assertIn("fileira superior na lane esquerda", notes["automation-science-pack"])
+        self.assertIn("fileira inferior na lane direita", notes["automation-science-pack"])
+        for note in notes.values():
+            self.assertNotRegex(note, r"\b(right|left|both)\b")
+        # One machine has no U, but the shared central belt still needs the warning.
+        _, _, warnings = mirrored_block.build(*fixture(count=1))
+        self.assertIn(expected, warnings)
+        _, layout, warnings = mirrored_block.build(*fixture(count=6, ingredients=1))
+        self.assertFalse(any("precisa chegar só pela lane direita" in w for w in warnings), warnings)
+
+    def test_single_input_both_lanes_note_is_translated(self):
+        raw, plan, cfg = fixture(count=10, ingredients=1)
+        plan["ingredients"][0]["per_min"] = 60 * 10
+        _, layout, _ = mirrored_block.build(raw, plan, cfg)
+        note = next(p["note"] for p in layout["ports"] if p["kind"] == "input")
+        self.assertIn("duas lanes da esteira central", note)
+
+    def test_module_inventory_comes_from_catalog_defines(self):
+        raw, plan, cfg = fixture(count=2)
+        raw["module"] = {"speed-module": {}}
+        plan["modules"] = ["speed-module"]
+        raw["defines"] = {"inventory": {"crafter_modules": 7}}
+        model, _, _ = mirrored_block.build(raw, plan, cfg)
+        machines = [e for e in model["entities"] if e["name"] == "machine"]
+        slots = [i["inventory"] for m in machines for item in m["items"] for i in item["items"]["in_inventory"]]
+        self.assertEqual(set(slots), {7})
+
     def test_single_input_uses_both_lanes_when_needed(self):
         raw, plan, cfg = fixture(count=10, ingredients=1)
         plan["ingredients"][0]["per_min"] = 60 * 10  # 600/min > 450 per lane
@@ -448,6 +500,46 @@ class MirroredBlockSearchTest(unittest.TestCase):
                 report = analyze(raw, export_entities(model, "2.1.23"), model["ports"], plan, layout, "2.1.23")
                 self.assertNotEqual(report["status"], "INVALID", report["errors"])
 
+    def test_repeated_layout_drops_single_block_geometry(self):
+        # Belt rows, lanes and limits of the last block would be wrong (unshifted) for the stacked layout.
+        raw, plan, cfg = search_fixture(count=56)
+        from physical_optimization import _repeated_mirrored_candidate
+        _, layout, _ = _repeated_mirrored_candidate(raw, plan, cfg)
+        for key in ("central_belt_y", "output_belt_y", "output_lanes", "machine_limits"):
+            self.assertNotIn(key, layout)
+
+    def test_pruned_mirrored_candidate_does_not_add_a_temporal_slot(self):
+        # The mirrored block exceeds the 40x12 area and is pruned without temporal evaluation:
+        # the other topologies keep exactly the configured limit.
+        raw, plan, cfg = search_fixture(optimization_profile="compact", target_area_width=40, target_area_height=12)
+        from physical_optimization import optimize_factory
+        result = optimize_factory(raw, plan, cfg, {"temporal_candidate_limit": 1, "exhaustive_temporal": True})
+        self.assertEqual(candidate(result, "mirrored_block")["status"], "PRUNED_BY_FAST_ANALYTICAL")
+        self.assertEqual(result["search_metrics"]["candidate_limit"], 1)
+        temporal = [c for c in result["candidate_evaluations"]
+                    if c.get("status") not in {"PRUNED_BY_FAST_ANALYTICAL", "PRUNED_BY_SHAPE_LIMIT", "INVALID_PHYSICAL_CANDIDATE"}]
+        self.assertEqual(len(temporal), 1, [(c["topology"], c.get("status")) for c in result["candidate_evaluations"]])
+
+    def test_evaluated_mirrored_candidate_brings_its_own_temporal_slot(self):
+        raw, plan, cfg = search_fixture(optimization_profile="compact")
+        from physical_optimization import optimize_factory
+        result = optimize_factory(raw, plan, cfg, {"temporal_candidate_limit": 1, "exhaustive_temporal": True})
+        self.assertEqual(candidate(result, "mirrored_block")["status"], "STABLE")
+        self.assertEqual(result["search_metrics"]["candidate_limit"], 2)
+        stable = [c["topology"] for c in result["candidate_evaluations"] if c.get("status") == "STABLE"]
+        self.assertEqual(len(stable), 2, stable)
+
+    def test_equipment_warning_is_computed_once(self):
+        raw, plan, cfg = search_fixture()
+        raw["electric-pole"]["pole"].update(collision_box=[[-.9, -.9], [.9, .9]], tile_width=2, tile_height=2,
+                                            supply_area_distance=9, maximum_wire_distance=18)
+        from unittest.mock import patch
+        import physical_optimization
+        with patch.object(physical_optimization, "mirrored_equipment_warning",
+                          wraps=physical_optimization.mirrored_equipment_warning) as spy:
+            physical_optimization.optimize_factory(raw, plan, cfg, {"temporal_candidate_limit": 1})
+        self.assertEqual(spy.call_count, 1)
+
     def test_search_uses_repeated_blocks_above_block_capacity(self):
         raw, plan, cfg = search_fixture(count=56, optimization_profile="compact")
         from physical_optimization import optimize_factory
@@ -456,6 +548,37 @@ class MirroredBlockSearchTest(unittest.TestCase):
         self.assertIsNotNone(mirrored)
         self.assertNotEqual(mirrored["status"], "INVALID_PHYSICAL_CANDIDATE", mirrored.get("errors"))
         self.assertEqual(mirrored["rows"], 4)
+
+
+class MirroredBlockServerWarningsTest(unittest.TestCase):
+    def test_discarded_initial_geometry_warnings_are_dropped_and_ports_deduplicated(self):
+        # 28 machines eating 63 copper/min each: two mirrored blocks of 14, each input over one lane.
+        from unittest.mock import patch
+        import server
+        raw, _, cfg = search_fixture(count=28, ingredients=1, optimization_profile="balanced")
+        raw["recipe"]["red"]["ingredients"] = [["copper-plate", 7]]
+        raw["assembling-machine"]["machine"]["crafting_categories"] = ["crafting"]
+        with patch.object(server, "_catalog", return_value=raw), patch.object(server, "_discover_exe", return_value=None), \
+                patch.object(server, "_factorio_version", return_value="2.1.23"):
+            result = server._generate(dict(recipe_name="red", product_name="automation-science-pack", machine_name="machine",
+                                           target_per_min=9 * 28, factory=cfg, temporal={"exhaustive_temporal": True}))
+        warnings = result["warnings"]
+        self.assertEqual(result["layout"]["physical_topology"], "parallel_mirrored_blocks")
+        self.assertFalse([w for w in warnings if "linhas iguais" in w or "proporção" in w], warnings)
+        self.assertEqual(len(warnings), len(set(warnings)), warnings)
+        self.assertEqual(sum("Entrada de copper-plate exige as duas faixas" in w for w in warnings), 1, warnings)
+
+    def test_initial_geometry_warnings_stay_when_the_initial_topology_wins(self):
+        from unittest.mock import patch
+        import server
+        raw, _, cfg = search_fixture(count=28, ingredients=1, optimization_profile="balanced", arrangement="rows")
+        raw["recipe"]["red"]["ingredients"] = [["copper-plate", 7]]
+        raw["assembling-machine"]["machine"]["crafting_categories"] = ["crafting"]
+        with patch.object(server, "_catalog", return_value=raw), patch.object(server, "_discover_exe", return_value=None), \
+                patch.object(server, "_factorio_version", return_value="2.1.23"):
+            result = server._generate(dict(recipe_name="red", product_name="automation-science-pack", machine_name="machine",
+                                           target_per_min=9 * 28, factory=cfg))
+        self.assertTrue(any("linhas iguais" in w for w in result["warnings"]), result["warnings"])
 
 
 if __name__ == "__main__":

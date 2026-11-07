@@ -123,7 +123,8 @@ def mirrored_equipment_warning(raw, plan, cfg):
     """Why an in-scope recipe was not offered the mirrored block because of equipment ("" otherwise)."""
     import mirrored_block
     if (cfg.get("mode", "belts") != "belts" or int(cfg.get("columns", 0) or 0) > 0
-            or str(cfg.get("arrangement", "auto")) != "auto" or not mirrored_block.recipe_in_scope(raw, plan)):
+            or str(cfg.get("arrangement", "auto")) != "auto" or int(cfg.get("rotation", 0) or 0) % 4
+            or not mirrored_block.recipe_in_scope(raw, plan)):
         return ""
     return mirrored_block.rejection_reason(raw, plan, cfg)
 
@@ -182,7 +183,8 @@ def _repeated_mirrored_candidate(raw, plan, requested):
     cfg = dict(module["config"], external_power_connectors=power)
     model = from_entities(raw, plan, entities, ports, wires, "parallel_mirrored_blocks", cfg)
     metrics = model["metrics"]
-    layout = dict(layout)
+    # Belt rows, lanes and limits describe one block only; unshifted they would point at the last block.
+    layout = {k: v for k, v in layout.items() if k not in {"central_belt_y", "output_belt_y", "output_lanes", "machine_limits"}}
     layout.update(columns=columns, rows=2 * copies, parallel_module_count=copies, parallel_module_machine_counts=shares,
                   physical_topology=model["topology"], physical_model=model, factory_area=metrics["area"],
                   factory_width=metrics["width"], factory_height=metrics["height"], entity_count=len(model["entities"]),
@@ -247,9 +249,10 @@ def optimize_factory(raw, plan, requested, config=None, version="2.1.23", initia
         import mirrored_block
         if mirrored_block.matches(raw, plan, requested):
             specifications.insert(0, ('mirrored_block', None))
-            limit += 1  # Its own temporal slot, so no existing topology is crowded out.
-        elif mirrored_equipment_warning(raw, plan, requested):
-            extra_warnings.append(mirrored_equipment_warning(raw, plan, requested))
+        else:
+            reason = mirrored_equipment_warning(raw, plan, requested)
+            if reason:
+                extra_warnings.append(reason)
     evaluations, viable, built = [], [], []
     cancelled, timed_out = False, False
     temporal_attempts = 0
@@ -322,6 +325,8 @@ def optimize_factory(raw, plan, requested, config=None, version="2.1.23", initia
                 else:
                     remaining = budget - (time.perf_counter() - started)
                     temporal_attempts += 1
+                    if topology == 'mirrored_block':
+                        limit += 1  # Its own temporal slot, only when used: no existing topology is crowded out.
                     analysis = evaluate(model, dict(cfg, time_budget_seconds=min(max(0, remaining), float(cfg.get("time_budget_seconds", 20)))), cancel)
             score = profile_score(model, analysis, requested.get("optimization_profile", "balanced"))
             summary.update({k: analysis.get(k) for k in ("status", "target_met", "stable_windows", "sustained_production_per_min",
@@ -350,7 +355,7 @@ def optimize_factory(raw, plan, requested, config=None, version="2.1.23", initia
     warnings = list(warnings) + [w for w in extra_warnings if w not in warnings]
     complete = (len(evaluations) >= len(specifications) and not cancelled and not timed_out
                 and all(e.get("status") not in {"CANCELLED", "INCONCLUSIVE"} for e in evaluations))
-    return {"model": model, "layout": layout, "warnings": warnings, "analysis": analysis,
+    return {"model": model, "layout": layout, "warnings": warnings, "analysis": analysis, "initial_topology": initial_topology,
             "selected_columns": layout["columns"], "selected_topology": model["topology"], "selected_is_validated": bool(viable),
             "blueprint_string": summary["blueprint_string"], "entities": export_entities(model, version),
             "candidate_evaluations": evaluations, "topology_comparison": evaluations, "search_complete": complete,
