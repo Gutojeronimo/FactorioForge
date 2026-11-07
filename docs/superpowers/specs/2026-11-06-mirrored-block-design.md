@@ -57,7 +57,7 @@ Um insumo só: se a demanda cabe numa lane, ele usa uma lane (sem side-load extr
 
 Uma máquina: bloco de uma fileira sem junção em U.
 
-Se a meta exigir mais que um bloco, o gerador sugere esteira mais rápida e, se ainda não couber, gera blocos repetidos num Book com aviso; cada bloco declara suas próprias portas de entrada dimensionadas para a sua parte da demanda, e a soma das portas cobre a demanda total.
+Se a meta exigir mais que um bloco, o gerador sugere esteira mais rápida e, se ainda não couber, gera blocos repetidos empilhados num único blueprint (como `parallel_copies`), com aviso (decisão do controlador); cada bloco declara suas próprias portas de entrada dimensionadas para a sua parte da demanda, e a soma das portas cobre a demanda total.
 
 ## 6. Componentes
 

@@ -18,6 +18,12 @@ Aplicativo WPF para Windows (net10.0-windows), com janela principal em XAML no e
 5. **Gerar.** Use o menu Gerar (fábrica única, cadeia conjunta ou fábrica com barramento). Durante a geração a interface mostra etapa e tempo e permite cancelar.
 6. **Resumo e Exportar.** A aba Resumo mostra meta, máquinas, módulos, insumos, coprodutos, layout, candidatos e validação. Em Exportar, copie o blueprint ou o livro, salve TXT ou PNG da prévia. Valide no Factorio antes de tratar vazões e conectores como comprovados.
 
+## Bloco espelhado
+
+Na aba Fábrica, seção Geometria, o campo Arranjo define como as máquinas são dispostas. Com **Automática** (e "Máquinas por linha" em 0), receitas com até 2 insumos sólidos e 1 produto sólido, sem fluidos e com máquina quadrada, também são avaliadas no bloco espelhado: duas fileiras de máquinas com uma esteira central de entrada e as saídas externas unidas em U. O gerador escolhe esse bloco apenas se a pontuação for melhor que a das outras alternativas; o Resumo mostra o candidato escolhido.
+
+Se a configuração usa postes 2×2 (subestação, perfil "throughput") ou inseridores de braço longo, o bloco espelhado não é oferecido e o Resumo exibe um aviso com o motivo; o layout segue com as outras topologias. **Linha única** força a linha reta e nunca usa o bloco. Se a meta exceder um bloco, os blocos repetidos aparecem empilhados no mesmo blueprint, cada um com suas portas de entrada. Valide no Factorio antes de tratar vazões como comprovadas.
+
 ## Fila
 
 A aba Fila guarda até 32 objetivos independentes, cada um com uma cópia das opções de fábrica no momento em que foi adicionado. Ao gerar, cada item é processado separadamente e as falhas aparecem por item. O livro reúne somente os blueprints bem-sucedidos. A opção de cadeia conjunta (menu Gerar) gera blocos modulares que ainda precisam ser conectados à mão no jogo.
