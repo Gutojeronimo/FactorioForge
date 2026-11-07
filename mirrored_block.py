@@ -51,6 +51,17 @@ def underground_for(raw, cfg):
     return name
 
 
+def recipe_in_scope(raw, plan):
+    """Recipe/machine shape of spec §2, independent of the chosen equipment."""
+    entries = plan.get('ingredients', []) + plan.get('products', [])
+    machine = raw.get(plan.get('machine_type'), {}).get(plan.get('machine_name'))
+    if any(e.get('type', 'item') != 'item' for e in entries) or not machine:
+        return False
+    width, height = footprint(machine)
+    return (1 <= len(plan.get('ingredients', [])) <= 2 and len(plan.get('products', [])) == 1 and width == height
+            and machine.get('energy_source', {}).get('type', 'electric') in {'electric', 'burner'})
+
+
 def rejection_reason(raw, plan, cfg):
     """Why this recipe/profile is outside the mirrored block ("" when it fits)."""
     if cfg.get('mode', 'belts') != 'belts':
@@ -283,7 +294,10 @@ def build(raw, plan, requested):
                   machine_width=s, machine_height=s, central_belt_y=yc + .5,
                   output_belt_y=(y_top + .5, y_bottom + .5) if two_rows else (y_top + .5,),
                   output_lanes=output_lanes, machine_limits=limit,
-                  checks={'grid_aligned': True, 'belt_capacity_checked': True, 'physical_errors': len(model['errors'])},
+                  checks={'overlaps': 0, 'grid_aligned': True, 'belt_capacity_checked': True, 'physical_errors': len(model['errors']),
+                          # Power coverage and wiring are derived by from_entities; any gap is a model error.
+                          'power_covered': not model['errors'], 'power_network_connected': not model['errors'],
+                          'power_connected': not model['errors']},
                   bill_of_materials=[dict(name=n, count=c) for n, c in Counter(e['name'] for e in entities).items()])
     warnings = ['Bloco espelhado: duas fileiras com esteira central e saída em U; cada fileira ocupa uma faixa da saída.'] if two_rows else []
     return model, layout, warnings

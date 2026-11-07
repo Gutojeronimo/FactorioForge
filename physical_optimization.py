@@ -1,6 +1,7 @@
 """Incremental physical candidate search with bounded evaluation cache."""
 from collections import Counter, OrderedDict
 from copy import deepcopy
+import math
 import time
 import threading
 
@@ -118,6 +119,83 @@ def _extended_smelting_candidate(raw, plan, requested, copies, parallel=False):
     return model, layout, warnings
 
 
+def mirrored_equipment_warning(raw, plan, cfg):
+    """Why an in-scope recipe was not offered the mirrored block because of equipment ("" otherwise)."""
+    import mirrored_block
+    if (cfg.get("mode", "belts") != "belts" or int(cfg.get("columns", 0) or 0) > 0
+            or str(cfg.get("arrangement", "auto")) != "auto" or not mirrored_block.recipe_in_scope(raw, plan)):
+        return ""
+    return mirrored_block.rejection_reason(raw, plan, cfg)
+
+
+def _mirrored_candidate(raw, plan, requested):
+    import mirrored_block
+    if int(plan["machine_count"]) <= mirrored_block.max_machines(raw, plan, requested):
+        return mirrored_block.build(raw, plan, requested)
+    return _repeated_mirrored_candidate(raw, plan, requested)
+
+
+def _repeated_mirrored_candidate(raw, plan, requested):
+    """Independent mirrored blocks stacked north-south, each with ports sized for its share (spec §5)."""
+    import mirrored_block
+    from physical_factory import from_entities
+    count = int(plan["machine_count"])
+    maximum = mirrored_block.max_machines(raw, plan, requested)
+    if maximum < 1:
+        return mirrored_block.build(raw, plan, requested)  # Raises with the inserter reason.
+    copies = math.ceil(count / maximum)
+    if copies > 8:
+        raise ValueError(f"O bloco espelhado exigiria {copies} blocos (máximo 8); selecione uma esteira mais rápida.")
+    shares = [count // copies + (1 if index < count % copies else 0) for index in range(copies)]
+    entities, ports, wires, power, positions = [], [], [], [], []
+    top, columns, warnings = 0, 0, []
+    for index, machines in enumerate(shares):
+        fraction = machines / count
+        block_plan = deepcopy(plan)
+        block_plan["machine_count"] = machines
+        for key in ("actual_per_min", "target_per_min"):
+            block_plan[key] = float(block_plan.get(key, 0)) * fraction
+        for item in block_plan.get("ingredients", []) + block_plan.get("products", []):
+            item["per_min"] = float(item.get("per_min", 0)) * fraction
+        module, layout, module_warnings = mirrored_block.build(raw, block_plan, requested)
+        warnings += [w for w in module_warnings if w not in warnings]
+        ys = [e["position"]["y"] for e in module["entities"]]
+        dy = top - math.floor(min(ys))
+        top = math.floor(max(ys)) + dy + 3  # Two free tiles between blocks.
+        offset = len(entities)
+        renumber = {e["entity_number"]: e["entity_number"] + offset for e in module["entities"]}
+        for original in module["entities"]:
+            entity = deepcopy(original)
+            entity["entity_number"] = renumber[original["entity_number"]]
+            entity["position"]["y"] += dy
+            entities.append(entity)
+        for original in module["ports"]:
+            port = deepcopy(original)
+            port["y"] += dy
+            port["belt_position"]["y"] += dy
+            port["note"] = f"Bloco {index + 1}/{copies} · " + port.get("note", "")
+            ports.append(port)
+        wires += [[renumber[a], ac, renumber[b], bc] for a, ac, b, bc in module["wires"]]
+        power += [renumber[n] for n in module["power"]["external_connector_entities"]]
+        positions += [dict(p, y=p["y"] + dy, row=p.get("row", 0) + 2 * index) for p in layout.get("positions", [])]
+        columns = max(columns, int(layout["columns"]))
+    cfg = dict(module["config"], external_power_connectors=power)
+    model = from_entities(raw, plan, entities, ports, wires, "parallel_mirrored_blocks", cfg)
+    metrics = model["metrics"]
+    layout = dict(layout)
+    layout.update(columns=columns, rows=2 * copies, parallel_module_count=copies, parallel_module_machine_counts=shares,
+                  physical_topology=model["topology"], physical_model=model, factory_area=metrics["area"],
+                  factory_width=metrics["width"], factory_height=metrics["height"], entity_count=len(model["entities"]),
+                  selected_belt_tiles=metrics["belt_length"], ports=model["ports"], wires=wires, positions=positions,
+                  checks=dict(layout["checks"], physical_errors=len(model["errors"]), power_covered=not model["errors"],
+                              power_network_connected=not model["errors"], power_connected=not model["errors"]),
+                  bill_of_materials=[dict(name=name, count=amount)
+                                     for name, amount in sorted(Counter(e["name"] for e in model["entities"]).items())])
+    warnings.append(f"A meta excede um bloco espelhado ({maximum} máquinas com {requested.get('belt')}): {copies} blocos "
+                    "independentes, cada um com suas próprias portas. Uma esteira mais rápida reduz o número de blocos.")
+    return model, layout, warnings
+
+
 def optimize_factory(raw, plan, requested, config=None, version="2.1.23", initial_layout=None, cancel=None, on_progress=None):
     from blueprint_quality import validate_blueprint_string
     cfg = dict(config or {})
@@ -163,6 +241,15 @@ def optimize_factory(raw, plan, requested, config=None, version="2.1.23", initia
         from reference_smelting import matches as reference_matches
         if reference_matches(raw, plan, requested):
             specifications.insert(0, ('reference_smelting', None))
+    extra_warnings = []
+    if explicit == 'auto' and not manual and specifications[0][0] != 'reference_smelting':
+        # A candidate like any other: the profile score decides, never forced (spec §3.1).
+        import mirrored_block
+        if mirrored_block.matches(raw, plan, requested):
+            specifications.insert(0, ('mirrored_block', None))
+            limit += 1  # Its own temporal slot, so no existing topology is crowded out.
+        elif mirrored_equipment_warning(raw, plan, requested):
+            extra_warnings.append(mirrored_equipment_warning(raw, plan, requested))
     evaluations, viable, built = [], [], []
     cancelled, timed_out = False, False
     temporal_attempts = 0
@@ -178,6 +265,8 @@ def optimize_factory(raw, plan, requested, config=None, version="2.1.23", initia
             if topology == 'reference_smelting':
                 from reference_smelting import build as build_reference
                 model, layout, warnings = build_reference(raw, plan, requested)
+            elif topology == 'mirrored_block':
+                model, layout, warnings = _mirrored_candidate(raw, plan, requested)
             elif topology in {'extended_smelting_blocks', 'parallel_smelting_blocks'}:
                 model, layout, warnings = _extended_smelting_candidate(raw, plan, requested, int(columns), topology == 'parallel_smelting_blocks')
             else:
@@ -258,6 +347,7 @@ def optimize_factory(raw, plan, requested, config=None, version="2.1.23", initia
     if choice is None:
         raise ValueError("No exportable physical candidate: " + "; ".join(str(e.get("errors", [])) for e in evaluations[:3]))
     model, layout, warnings, analysis, summary = choice
+    warnings = list(warnings) + [w for w in extra_warnings if w not in warnings]
     complete = (len(evaluations) >= len(specifications) and not cancelled and not timed_out
                 and all(e.get("status") not in {"CANCELLED", "INCONCLUSIVE"} for e in evaluations))
     return {"model": model, "layout": layout, "warnings": warnings, "analysis": analysis,

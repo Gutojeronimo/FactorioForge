@@ -320,5 +320,143 @@ class MirroredBlockCapacityTest(unittest.TestCase):
         self.assertAlmostEqual(out["per_min"], 200)
 
 
+def search_fixture(count=6, ingredients=2, **cfg_updates):
+    raw, plan, cfg = fixture(count=count, ingredients=ingredients)
+    raw["item"] = {n: {"stack_size": 100} for n in ("copper-plate", "iron-gear-wheel", "automation-science-pack")}
+    cfg.update(cfg_updates)
+    return raw, plan, cfg
+
+
+def candidate(result, topology):
+    return next((c for c in result["candidate_evaluations"] if c["topology"] == topology), None)
+
+
+class MirroredBlockSearchTest(unittest.TestCase):
+    def search(self, raw, plan, cfg):
+        from physical_optimization import optimize_factory
+        # Exhaustive: every candidate gets a temporal score, so the comparison is complete.
+        return optimize_factory(raw, plan, cfg, {"exhaustive_temporal": True})
+
+    def test_mirrored_block_is_evaluated_as_candidate(self):
+        raw, plan, cfg = search_fixture()
+        result = self.search(raw, plan, cfg)
+        mirrored = candidate(result, "mirrored_block")
+        self.assertIsNotNone(mirrored, [c["topology"] for c in result["candidate_evaluations"]])
+        self.assertTrue(mirrored["physical_valid"], mirrored.get("errors"))
+        self.assertEqual(mirrored["status"], "STABLE")
+        self.assertIs(result["topology_comparison"], result["candidate_evaluations"])
+        # The extra candidate brings its own temporal slot: no existing topology is crowded out.
+        from physical_factory import TOPOLOGIES
+        self.assertEqual({c["topology"] for c in result["candidate_evaluations"]}, {*TOPOLOGIES, "mirrored_block"})
+
+    def test_mirrored_block_wins_when_it_scores_best(self):
+        raw, plan, cfg = search_fixture(optimization_profile="compact")
+        result = self.search(raw, plan, cfg)
+        scores = {c["topology"]: c["profile_score"]["total"] for c in result["candidate_evaluations"] if c.get("status") == "STABLE"}
+        self.assertEqual(min(scores, key=scores.get), "mirrored_block", scores)
+        self.assertEqual(result["selected_topology"], "mirrored_block")
+
+    def test_other_topology_wins_when_it_scores_better(self):
+        # Only expansion connectors count: the closed mirrored block loses to the repeatable layout.
+        raw, plan, cfg = search_fixture(optimization_profile="custom",
+                                        custom_weights={"area": 0, "entities": 0, "belts": 0, "cost": 0, "transport": 0,
+                                                        "complexity": 0, "idle": 0, "expansion": 1})
+        result = self.search(raw, plan, cfg)
+        scores = {c["topology"]: c["profile_score"]["total"] for c in result["candidate_evaluations"] if c.get("status") == "STABLE"}
+        self.assertIn("mirrored_block", scores)
+        self.assertNotEqual(result["selected_topology"], "mirrored_block", scores)
+        self.assertEqual(scores[result["selected_topology"]], min(scores.values()))
+
+    def test_manual_single_row_keeps_linear(self):
+        raw, plan, cfg = search_fixture(arrangement="single_row")
+        result = self.search(raw, plan, cfg)
+        self.assertIsNone(candidate(result, "mirrored_block"))
+        self.assertEqual(result["selected_topology"], "linear")
+
+    def test_area_limit_filters_mirrored_like_other_candidates(self):
+        # The mirrored block (12x13) is the best compact layout, but not inside a 40x12 area.
+        raw, plan, cfg = search_fixture(optimization_profile="compact", target_area_width=40, target_area_height=12)
+        model, _, _ = mirrored_block.build(raw, plan, cfg)
+        self.assertGreater(model["metrics"]["height"], 12)
+        result = self.search(raw, plan, cfg)
+        mirrored = candidate(result, "mirrored_block")
+        self.assertFalse(mirrored["physical_valid"])
+        self.assertTrue(any("exceeds selected area 40×12" in e for e in mirrored["errors"]), mirrored["errors"])
+        self.assertNotEqual(result["selected_topology"], "mirrored_block")
+
+    def test_equipment_rejection_becomes_user_warning(self):
+        raw, plan, cfg = search_fixture()
+        raw["electric-pole"]["pole"].update(collision_box=[[-.9, -.9], [.9, .9]], tile_width=2, tile_height=2,
+                                            supply_area_distance=9, maximum_wire_distance=18)
+        result = self.search(raw, plan, cfg)
+        self.assertIsNone(candidate(result, "mirrored_block"))
+        self.assertTrue(any("só aceita postes 1x1" in w for w in result["warnings"]), result["warnings"])
+
+    def test_out_of_scope_recipe_has_no_mirrored_warning(self):
+        raw, plan, cfg = search_fixture()
+        plan["ingredients"].append({"name": "automation-science-pack", "type": "item", "amount": 1, "per_min": 54})
+        raw["electric-pole"]["pole"].update(collision_box=[[-.9, -.9], [.9, .9]], tile_width=2, tile_height=2,
+                                            supply_area_distance=9, maximum_wire_distance=18)
+        from physical_optimization import mirrored_equipment_warning
+        self.assertEqual(mirrored_equipment_warning(raw, plan, cfg), "")
+
+    def test_repeated_blocks_ports_cover_total_demand(self):
+        # Red science 504/min (56 machines) exceeds one lane per input: two blocks of 28.
+        raw, plan, cfg = search_fixture(count=56)
+        self.assertLess(mirrored_block.max_machines(raw, plan, cfg), 56)
+        from physical_optimization import _repeated_mirrored_candidate
+        model, layout, warnings = _repeated_mirrored_candidate(raw, plan, cfg)
+        self.assertEqual(model["errors"], [])
+        self.assertEqual(len(model["machines"]), 56)
+        self.assertEqual(layout["parallel_module_count"], 2)
+        self.assertTrue(any("esteira mais rápida" in w for w in warnings), warnings)
+        lane = 450
+        for ingredient in plan["ingredients"]:
+            ports = [p for p in model["ports"] if p["kind"] == "input" and p["name"] == ingredient["name"]]
+            self.assertEqual(len(ports), 2)
+            self.assertAlmostEqual(sum(p["per_min"] for p in ports), ingredient["per_min"])
+            self.assertTrue(all(p["per_min"] <= lane + 1e-9 for p in ports))
+        outputs = [p for p in model["ports"] if p["kind"] == "output"]
+        self.assertAlmostEqual(sum(p["per_min"] for p in outputs), plan["products"][0]["per_min"])
+        require_input_signals(model["entities"], model["ports"])
+
+    def test_repeated_blocks_split_uneven_counts(self):
+        # 50 machines per block (450 / 9 per input lane): 57 machines become 29 + 28.
+        raw, plan, cfg = search_fixture(count=57)
+        self.assertEqual(mirrored_block.max_machines(raw, plan, cfg), 50)
+        from physical_optimization import _repeated_mirrored_candidate
+        model, layout, _ = _repeated_mirrored_candidate(raw, plan, cfg)
+        self.assertEqual(model["errors"], [])
+        self.assertEqual(len(model["machines"]), 57)
+        self.assertEqual(layout["parallel_module_machine_counts"], [29, 28])
+        for ingredient in plan["ingredients"]:
+            ports = [p for p in model["ports"] if p["kind"] == "input" and p["name"] == ingredient["name"]]
+            self.assertAlmostEqual(sum(p["per_min"] for p in ports), ingredient["per_min"])
+
+    def test_static_validation_accepts_single_and_repeated_blocks(self):
+        # server._generate runs blueprint_quality.analyze on the chosen layout; the
+        # electric power check reads layout["checks"]["power_connected"].
+        from blueprint_quality import analyze
+        from physical_factory import export_entities
+        from physical_optimization import _repeated_mirrored_candidate
+        for count in (6, 56):
+            with self.subTest(count=count):
+                raw, plan, cfg = search_fixture(count=count)
+                build = mirrored_block.build if count == 6 else _repeated_mirrored_candidate
+                model, layout, _ = build(raw, plan, cfg)
+                self.assertTrue(layout["checks"]["power_connected"])
+                report = analyze(raw, export_entities(model, "2.1.23"), model["ports"], plan, layout, "2.1.23")
+                self.assertNotEqual(report["status"], "INVALID", report["errors"])
+
+    def test_search_uses_repeated_blocks_above_block_capacity(self):
+        raw, plan, cfg = search_fixture(count=56, optimization_profile="compact")
+        from physical_optimization import optimize_factory
+        result = optimize_factory(raw, plan, cfg, {"temporal_candidate_limit": 1})
+        mirrored = candidate(result, "mirrored_block")
+        self.assertIsNotNone(mirrored)
+        self.assertNotEqual(mirrored["status"], "INVALID_PHYSICAL_CANDIDATE", mirrored.get("errors"))
+        self.assertEqual(mirrored["rows"], 4)
+
+
 if __name__ == "__main__":
     unittest.main()
