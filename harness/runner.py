@@ -12,7 +12,7 @@ REPO = Path(__file__).resolve().parent.parent
 MOD_SRC = REPO / "factorio-mod" / "forgeplan-harness"
 MOD_NAME = "forgeplan-harness"
 TICK_MARGIN = 30
-LIST_FIELDS = ("built", "rejected", "machines", "errors")
+LIST_FIELDS = ("built", "rejected", "machines", "errors", "lane_flow")
 
 
 def _prefix(factorio_exe):

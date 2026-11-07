@@ -1,0 +1,102 @@
+{
+ "id": "15-mirrored-grenade",
+ "blueprint_string": "0eNrNmd1uozAQhV+lyvVSYWNjs69SrSpC3NYSMciYqlXUd18nqVZIpe3MoRerSAkY408+YX6YOe32/ezG6EPa/b457Xxyx3ywGP11s3t2cfJDyOO6lo1WUjVNLZSR+ZoLySfvpnzx7nQ9e70P83HvYh4SeUZoj+68ZIptmMYhpmLv+su64zDley8Ln3Yv+buQtzqPv+bD+la/5cODj657n6PywEeEZCIEH1ExESUfoXgIgKB5BECmmkcA/mvDI1R8guURFJ/Q8AiaTxAlD1EDCKZhGwDBNGwLICrYd+iPDLvOUOg2yo8IIdcZGv03GIwafagYDIPaBoMBWziD0aB+is6QJeptGQyBxgwGQ6KRj8HAA3hJtXOpYIYgMzTMkGRGDTMqMsPADEVmLO18DgcXH+OQf0mUNe+ez9PreFnOh3FOu3VsswFrvsYOc/qUW5WwpJYqaSVgRkNmSNyMyLZa4f5AkI21UnByIST5zQT3CAxIjbpoBsOgoYbBsGjIZDDg0E9nqBJNYRgMgaZiDIZEU0oGo0JTYwYDTvEZjKWht9Pkjvveh8fi2HZPPrhCfmMlK7H5/BTlM38NLo/Rhfbg1qOLWnqAh3ZKhQ+Tiylf/BpLfk1SBiSQ/bGyiILqpxRsWPtTfAV1CRLICmqBKGh+SEEtWfszgIIVSKArqLZZcbNNQQ3a2EpeWq4TUD+xllZ9gjDbzHijhBY0MrqEqKOgS1gvPcV0bPu+cH2+J/quGIfefZfUkTkC4NQAR27ajyZzqk37oXPUpv2QH7VaAxwNcOptzxv9QTCbNsQALd1AN4QptSEV3XDc+9CmIX7X3DLrTiivlOLQ3+/dU/vsh3jtyE33lwkpzi7Pma53TJdri5O7PDMc3Mt70+3B99llrFz4V8M4N/oWu/BxCMXYt+miUjfMl4agUOLtT/68rcvQbJNB/38ydEPbLwWQVn4hgOFWXYCOlOFWXYCelOFWXYCulOEWXYC2lFGs4FkovnM2vCRqoRQdwcuiCiDEGAMXp8gVWGNhBrmSbBqYQa6I2xIv5JEZAmaQq56W9wK18NMVudNiK5Qh6QyFMgSdoVEGvStlmWXVBigbWW5ZFandWt5LkUCq6baBGWtlh3NE/wuwd0eg",
+ "ticks_warmup": 3600,
+ "ticks_measure": 36000,
+ "seed": 1,
+ "feed": [
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -4.5,
+    "y": 4.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -5.5,
+    "y": 4.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -6.5,
+    "y": 4.5
+   }
+  },
+  {
+   "item": "coal",
+   "infinite": true,
+   "position": {
+    "x": -3.5,
+    "y": 3.5
+   }
+  },
+  {
+   "item": "coal",
+   "infinite": true,
+   "position": {
+    "x": -3.5,
+    "y": 2.5
+   }
+  },
+  {
+   "item": "coal",
+   "infinite": true,
+   "position": {
+    "x": -3.5,
+    "y": 1.5
+   }
+  },
+  {
+   "item": "coal",
+   "infinite": true,
+   "position": {
+    "x": -3.5,
+    "y": 0.5
+   }
+  }
+ ],
+ "sinks": [
+  {
+   "position": {
+    "x": 10.5,
+    "y": 10.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 10.5,
+    "y": 14.5
+   },
+   "count": true
+  }
+ ],
+ "machine_modules": [],
+ "beacon_modules": [],
+ "expected": {
+  "grenade": 0.46875
+ },
+ "tolerance": {
+  "abs": 0.0,
+  "rel": 0.1
+ },
+ "lane_probes": [
+  {
+   "position": {
+    "x": 9.5,
+    "y": 12.5
+   },
+   "expected": {
+    "left": 0.28125,
+    "right": 0.1875
+   }
+  }
+ ]
+}

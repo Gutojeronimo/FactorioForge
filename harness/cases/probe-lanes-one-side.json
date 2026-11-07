@@ -1,0 +1,126 @@
+{
+ "id": "probe-lanes-one-side",
+ "blueprint_string": "0eNqd1d1qhDAQBeBXWbyuJRMTf/ZVSinaphBYoyTZ0kV89053e7FQWTxzI3Gi+TgXR5diOJ3dHH3IxfGwFD67kRd306dD8eVi8lPgua11Z402XVeTaTTvuZB99i7x5styu7u8hfM4uMgj4idCP7rfI3PsQ5qnmMvBna7nzlPid68HL8U3X9Wz5fHltlp5+eGje/97xPDgv6AxgXChwgSNCwYTKlywmGBwocYEiwsNJtS40GJCgwsdJrS4QAojOgEBtpoEtSa014JiE9hsElSbwG6ToNwEtpsE9Saw3yQoON03/LNPufQhuZh58/GnvNwg1DbRQoSWEB2WQj002u2fnpIatDeGJowgSQwtNfbHqDBCS2IYqbE/hsWIShKjlhr7Y4ANN5IYrdTYHwOsuBXEqJTU2Izxuq4/I2mfZg==",
+ "ticks_warmup": 600,
+ "ticks_measure": 3600,
+ "seed": 1,
+ "feed": [
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 1.5,
+    "y": -1.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 2.5,
+    "y": -1.5
+   }
+  }
+ ],
+ "sinks": [
+  {
+   "position": {
+    "x": 10.5,
+    "y": -1.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 10.5,
+    "y": 2.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 11.5,
+    "y": -1.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 11.5,
+    "y": 2.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 12.5,
+    "y": -1.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 12.5,
+    "y": 2.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 13.5,
+    "y": -1.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 13.5,
+    "y": 2.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 14.5,
+    "y": -1.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 14.5,
+    "y": 2.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 15.5,
+    "y": -1.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 15.5,
+    "y": 2.5
+   },
+   "count": true
+  }
+ ],
+ "machine_modules": [],
+ "beacon_modules": [],
+ "expected": {},
+ "tolerance": {
+  "abs": 0.0,
+  "rel": 0.1
+ },
+ "lane_probes": [
+  {
+   "position": {
+    "x": 8.5,
+    "y": 0.5
+   }
+  }
+ ]
+}

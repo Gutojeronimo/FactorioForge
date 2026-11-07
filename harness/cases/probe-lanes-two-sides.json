@@ -1,0 +1,134 @@
+{
+ "id": "probe-lanes-two-sides",
+ "blueprint_string": "0eNqd1d9qgzAUBvBXKV7P4ckfNX2VMYZuGQRqlCQdK+K7L2t3IdQVv3NT4onmxyd8di7609lOwflUHA9z4ZId8mI1fToUXzZEN/o817UwWgllTE2qEXnP+uSSszFvvsy3q8ubPw+9DXlE+Q7fDfb3yBQ6H6cxpLK3p+u50xjzs9eD5+I7/1bPOo8vt9WSlx8u2Pe/W1Qe3AsCEwgXJCYIXFCYIHFBY4LChRoTNC40mFDjQosJDS4YTGhxgSqMMAwCbDUxak1orxnFJrDZxKg2gd0mRrkJbDcx6k1gv4lRcFo3/LOLqXQ+2pDy5uNPeblBVNtECxGCQxhmCroX2u2/vAoTqocp/jGIa9DeFyUERhAnhuQa+2MojBCcGJpr7I9RY4TkxGi4xv4YWMFXn0IghuEau2NIsOKaEUMS19iM8bosP84jvSI=",
+ "ticks_warmup": 600,
+ "ticks_measure": 3600,
+ "seed": 1,
+ "feed": [
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 1.5,
+    "y": -1.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": 2.5,
+    "y": -1.5
+   }
+  },
+  {
+   "item": "copper-plate",
+   "infinite": true,
+   "position": {
+    "x": 1.5,
+    "y": 2.5
+   }
+  }
+ ],
+ "sinks": [
+  {
+   "position": {
+    "x": 10.5,
+    "y": -1.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 10.5,
+    "y": 2.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 11.5,
+    "y": -1.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 11.5,
+    "y": 2.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 12.5,
+    "y": -1.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 12.5,
+    "y": 2.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 13.5,
+    "y": -1.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 13.5,
+    "y": 2.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 14.5,
+    "y": -1.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 14.5,
+    "y": 2.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 15.5,
+    "y": -1.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 15.5,
+    "y": 2.5
+   },
+   "count": true
+  }
+ ],
+ "machine_modules": [],
+ "beacon_modules": [],
+ "expected": {},
+ "tolerance": {
+  "abs": 0.0,
+  "rel": 0.1
+ },
+ "lane_probes": [
+  {
+   "position": {
+    "x": 8.5,
+    "y": 0.5
+   }
+  }
+ ]
+}

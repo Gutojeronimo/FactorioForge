@@ -150,6 +150,49 @@ local function sample_status(surface)
   end
 end
 
+-- Lane probes (see harness/LAUNCH.md): every tick of the measurement window, read the items of both transport
+-- lines of the probe tile and count an item once when it crosses the line's midpoint (the exit mark) between two
+-- consecutive ticks, tracking it by unique_id. In 2.1 `position` runs from line_length at the entry down to 0 at the
+-- exit; the test only asks for a sign change around the mark, so it does not depend on that orientation. An item
+-- moves far less than half a tile per tick, so it is seen on both sides of the mark and never counted twice.
+local function place_probes(surface)
+  storage.probes = {}
+  for _, p in pairs(case.lane_probes or {}) do
+    local found = surface.find_entities_filtered{position = shifted(p.position), type = {"transport-belt", "underground-belt"}}
+    if found[1] then
+      storage.probes[#storage.probes + 1] = {entity = found[1], x = p.position.x, y = p.position.y, prev = {{}, {}},
+                                             counts = {0, 0}, seen = {0, 0}, min = {}, max = {}}
+    else add_error("lane_probe sem esteira em " .. serpent.line(p.position)) end
+  end
+end
+
+local LINES = {defines.transport_line.left_line, defines.transport_line.right_line}
+
+local function sample_probes(counting)
+  for _, probe in pairs(storage.probes or {}) do
+    if probe.entity.valid then
+      for i, index in ipairs(LINES) do
+        local line = probe.entity.get_transport_line(index)
+        local mark = line.line_length / 2
+        probe.mark = mark
+        local now = {}
+        for _, item in pairs(line.get_detailed_contents()) do
+          local position = item.position
+          now[item.unique_id] = position
+          probe.min[i] = math.min(probe.min[i] or position, position)
+          probe.max[i] = math.max(probe.max[i] or position, position)
+          local before = probe.prev[i][item.unique_id]
+          if counting and before and (before > mark) ~= (position > mark) then
+            probe.counts[i] = probe.counts[i] + item.stack.count
+          end
+        end
+        if counting then for _ in pairs(now) do probe.seen[i] = probe.seen[i] + 1 end end
+        probe.prev[i] = now
+      end
+    end
+  end
+end
+
 local function counted_contents()
   local totals = {}
   for _, chest in pairs(storage.counted or {}) do
@@ -191,12 +234,19 @@ local function finish(surface)
       end
     end
   end
+  local lane_flow = {}
+  for _, probe in pairs(storage.probes or {}) do
+    lane_flow[#lane_flow + 1] = {x = probe.x, y = probe.y, left = probe.counts[1] / seconds, right = probe.counts[2] / seconds,
+                                 mark = probe.mark, position_range = {left = {probe.min[1], probe.max[1]}, right = {probe.min[2], probe.max[2]}},
+                                 item_ticks = {left = probe.seen[1], right = probe.seen[2]}}
+  end
   local machines = {}
   for _, rec in pairs(storage.machines) do machines[#machines + 1] = rec end
   helpers.write_file("result.json", helpers.table_to_json({
     case_id = case.id, factorio_version = helpers.game_version,
     built = count_names(storage.built), rejected = storage.rejected,
     measured = measured, sink_counts = sink_counts, sink_detail = sink_detail, machines = machines, shift = storage.shift,
+    lane_flow = lane_flow,
     ticks_run = game.tick - storage.t0, errors = storage.errors,
   }), false)
 end
@@ -228,6 +278,7 @@ local function init()
     place_feeds(surface)
     insert_modules(surface)
     insert_beacon_modules(surface)
+    place_probes(surface)
   end)
   if not ok then add_error(err) end
   if case.ticks_warmup == 0 then storage.baseline = snapshot(surface); storage.counted_baseline = counted_contents() end
@@ -246,6 +297,10 @@ script.on_event(defines.events.on_tick, function(event)
   if elapsed % 30 == 0 and elapsed > case.ticks_warmup then
     local ok_status, err_status = pcall(sample_status, surface)
     if not ok_status and not storage.status_error then storage.status_error = true; add_error("sample_status: " .. tostring(err_status)) end
+  end
+  if elapsed >= case.ticks_warmup and elapsed <= case.ticks_warmup + case.ticks_measure then
+    local ok_probe, err_probe = pcall(sample_probes, elapsed > case.ticks_warmup)
+    if not ok_probe and not storage.probe_error then storage.probe_error = true; add_error("sample_probes: " .. tostring(err_probe)) end
   end
   if elapsed == case.ticks_warmup then storage.baseline = snapshot(surface); storage.counted_baseline = counted_contents() end
   if elapsed == case.ticks_warmup + case.ticks_measure and not storage.finished then

@@ -44,3 +44,58 @@ Detecção: fileiras de máquinas = valores distintos de `y` das fornalhas; este
 - O handbook tem 25 inserters em cada fileira de saída (y = 1,5 e 9,5) e 24 nas de entrada; o bloco usa 24 em todas as quatro.
 - A largura de cada lado inclui a área de entrada e a conexão da saída (o bloco usa 3 tiles à esquerda das máquinas para combinador e curva em U).
 - Não há dado do jogo sobre a vazão real do array do handbook; a comparação é geométrica.
+
+# Prova no jogo: produção e fluxo por lane (Factorio 2.1.24)
+
+Medições feitas em 2026-11-07 com o harness (`factorio.exe` 2.1.24, vanilla, superfície plana própria, energia
+reposta a cada tick). Casos gerados por `harness/block_cases.py`; rodar com `python -m harness.block_cases --run`.
+
+## Método da sonda de lanes
+
+A sonda conta **travessias**: a cada tick da janela de medição o mod lê `get_detailed_contents()` das duas
+transport lines do tile da sonda e conta um item (pelo `unique_id`) quando ele passa de um lado para o outro da marca
+no meio do tile (`line_length / 2`) entre dois ticks consecutivos. Cada item é contado uma vez. Detalhes em
+`harness/LAUNCH.md` ("Sonda de lanes"). Fluxo = travessias / segundos da janela.
+
+## Validação controlada da sonda
+
+Esteira amarela reta para leste; inserters rápidos alimentados por caixas: ao norte com `iron-plate` (caem na lane
+direita), ao sul com `copper-plate` (lane esquerda). A sonda fica num tile sem inserters; depois dela, sumidouros
+contados nos dois lados. Referência de cada lane = taxa do seu item nos sumidouros. Aquecimento 600 ticks, medição 3600.
+
+| Caso | Lane | Referência (itens/s) | Sonda (itens/s) |
+|---|---|---|---|
+| `probe-lanes-one-side` (2 inserters ao norte) | esquerda | 0,0 | 0,0 |
+| | direita | 5,0 | 5,0 |
+| `probe-lanes-two-sides` (2 ao norte, 1 ao sul) | esquerda | 2,5 | 2,5 |
+| | direita | 5,0 | 5,0 |
+
+A sonda coincidiu com os sumidouros nas quatro lanes (critério: 10%).
+
+## Casos do bloco espelhado
+
+Gerados pelo caminho real do motor (`server._generate`, arranjo automático, perfil `balanced`, catálogo do
+`data-raw-dump.json`), com `assembling-machine-2`, inserters rápidos e `small-electric-pole`. Nos dois casos a topologia
+escolhida foi `mirrored_block`. Contagem ímpar de máquinas (3 na fileira superior, 2 na inferior) para que as lanes
+tenham taxas diferentes e uma troca de lanes apareça. Insumos vêm de caixas com inserters em esteiras de entrada
+estendidas (a entrada A só pelo norte quando a porta pede a lane direita); a sonda fica no primeiro tile depois do
+bloco na esteira de saída final (após a junção em U), seguida de sumidouros. Esperado por lane = máquinas da fileira ×
+taxa por máquina; fileira superior → lane esquerda, inferior → direita (o mesmo que o rastreador offline indica).
+
+| Caso | Esteira | Meta | Total esperado / medido (itens/s) | Lane | Esperado | Medido |
+|---|---|---|---|---|---|---|
+| `14-mirrored-gear` (engrenagem, 5 máquinas, 1 insumo) | rápida | 450/min | 7,500 / 7,500 | esquerda (superior, 3) | 4,500 | 4,500 |
+| | | | | direita (inferior, 2) | 3,000 | 3,000 |
+| `15-mirrored-grenade` (granada, 5 máquinas, ferro + carvão) | amarela | 28,125/min | 0,4688 / 0,4667 | esquerda (superior, 3) | 0,2813 | 0,2817 |
+| | | | | direita (inferior, 2) | 0,1875 | 0,1867 |
+
+Janelas: engrenagem 1800 + 7200 ticks; granada 3600 + 36000 ticks (receita de 8 s). O total medido vem das estatísticas
+de produção (`input_counts`); os sumidouros deram o mesmo valor (7,500 e 0,4683 itens/s).
+
+## Conclusões
+
+- Total dentro de 10% da meta nos dois casos (engrenagem 0,0%, granada −0,4%).
+- Cada fileira chegou numa lane diferente da saída final, como o construtor declara e o rastreador offline indica;
+  o fluxo de cada lane ficou dentro de 0,5% da produção esperada da fileira.
+- A simulação temporal offline classifica a candidata da granada como `UNSTABLE` (28,0/min sustentados para meta
+  28,125/min); no jogo o bloco produziu 28,0/min, dentro da tolerância. Na engrenagem a simulação dá `STABLE`.

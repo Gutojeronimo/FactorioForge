@@ -65,6 +65,19 @@ class CaseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_case(valid(seed="1"))
 
+    def test_lane_probes_default_empty_and_validated(self):
+        self.assertEqual(validate_case(valid()).lane_probes, [])
+        ok = validate_case(valid(lane_probes=[{"position": {"x": 3.5, "y": 10.5}},
+                                              {"position": {"x": 1, "y": 2}, "expected": {"left": 1.5, "right": 0}}]))
+        self.assertEqual(ok.lane_probes[0]["position"], {"x": 3.5, "y": 10.5})
+        self.assertEqual(ok.lane_probes[1]["expected"]["left"], 1.5)
+        self.assertIn("lane_probes", ok.to_dict())
+        for bad in ("x", [{"x": 1, "y": 2}], [{"position": {"x": 1}}], [{"position": {"x": "1", "y": 2}}],
+                    [{"position": {"x": True, "y": 2}}], [{"position": {"x": 1, "y": 2}, "expected": {"middle": 1}}],
+                    [{"position": {"x": 1, "y": 2}, "expected": {"left": -1}}], ["pos"]):
+            with self.assertRaises(ValueError, msg=repr(bad)):
+                validate_case(valid(lane_probes=bad))
+
 
 if __name__ == "__main__":
     unittest.main()

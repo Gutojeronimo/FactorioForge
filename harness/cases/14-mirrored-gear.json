@@ -1,0 +1,154 @@
+{
+ "id": "14-mirrored-gear",
+ "blueprint_string": "0eNqtmetq4zAQhV+l5PeqWLIu1r5KWYqTqq3BsYOtdFtC331VtyyBeLczZ0IgsSVFH6PL0WjmtNn2x3SYuiFvft6cNl1O+/JwVvrjZvOSprkbh1LuvInOGhuj1zaYUpeG3OUuzaXy7vT59nY/HPfbNJUiXVoM7T59dPnYzlnlqR3mwzhltU390vlhnEsHS++nzWv5VubWlfK38uhv3Xt5fOimtPtqY0vBJccgHM3n1Ain4nMswAEwDsAAo+YBDLAIAoCp+ZgGwFg+JgIYx8foCuB4gINIQQA4iBQ0AKcWcapLjjbrICsaOAbIiVYCA+RFS5sBCqKtygA1IulhgKJISukgU4mOBgZIi446BsjIzu4VUrMOEjoJmgyyMpAhg5wMVJNBXgayZNCFMhyHhzQ9TWP5JaHcCqq857fD0mc3HI55s85upOzwf/Z4zP+GR9kIN9QRrisZKJJBWrjdyBu7FiqIJu/supbdZ7QhX2iEGsIgOZHQM0BedHQxQEF0GDNAMveCAYoih4kOspXIBWSAtMipZYCMyE1ngGQXDwboXBraeU77bd8NT2rf7p67ISnzzUZaOfU/Zr28dV9n5DQO6im1k/r9nFK/fmDZC9nohjlNuVT+H++oYms9i2AAQgBtIB8YtkHmyl57riLLTssfSVexCA4gaNAG8lw5g8xVuPJcuZplZwBG0rIIDUBwoA30ufIyDYzXmStUP1YuCtU6oQE1kE6IqAZqKsJXMhG8zmR5VEDIQ+kNKIJ0Qo2KIH2yztVh3rd9r1Jf/jN1O3UY+/TddYDMcQDHAxwvsseROUFkD53TiOyhL7UIcGo+J1Sy9UZeCEEDIIeAzmVgNw5zboesduN+2w1tHqfvkqthXe5KT3ka+/ttem5funH6TAvP90uDPB1TaTN//mNe6s5e7krL4SG9fmV+H7u+SMZKxd8o2Ue2+cyKRWAPfZuXUdqNxyUrHavq/Vf5vK8PAxQrAfJ+AQqVAJm/AIVbgdxfgMKtQPIvIJESBWT/AhIpUUD6L/DcGWX5CtxUKCJQ3duG56soB1hhUATdCp63ooDTsLEogm4F7zKjAmCFRxF0K3hXFdUAVjQogm4FEgeNQIwtQmlWJCoekUCoRsLiEYmEaiQuHnkbXyOpmGhhRk1d0ZEZ49SIHR5m0O1gxikMYkcDM1btKG7lH16Jkpw=",
+ "ticks_warmup": 1800,
+ "ticks_measure": 7200,
+ "seed": 1,
+ "feed": [
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -4.5,
+    "y": 4.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -4.5,
+    "y": 8.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -5.5,
+    "y": 4.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -5.5,
+    "y": 8.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -6.5,
+    "y": 4.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -6.5,
+    "y": 8.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -7.5,
+    "y": 4.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -7.5,
+    "y": 8.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -8.5,
+    "y": 4.5
+   }
+  },
+  {
+   "item": "iron-plate",
+   "infinite": true,
+   "position": {
+    "x": -8.5,
+    "y": 8.5
+   }
+  }
+ ],
+ "sinks": [
+  {
+   "position": {
+    "x": 10.5,
+    "y": 10.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 10.5,
+    "y": 14.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 11.5,
+    "y": 10.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 11.5,
+    "y": 14.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 12.5,
+    "y": 10.5
+   },
+   "count": true
+  },
+  {
+   "position": {
+    "x": 12.5,
+    "y": 14.5
+   },
+   "count": true
+  }
+ ],
+ "machine_modules": [],
+ "beacon_modules": [],
+ "expected": {
+  "iron-gear-wheel": 7.5
+ },
+ "tolerance": {
+  "abs": 0.0,
+  "rel": 0.1
+ },
+ "lane_probes": [
+  {
+   "position": {
+    "x": 9.5,
+    "y": 12.5
+   },
+   "expected": {
+    "left": 4.5,
+    "right": 3.0
+   }
+  }
+ ]
+}

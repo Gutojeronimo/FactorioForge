@@ -20,6 +20,7 @@ class Case:
     beacon_modules: list = field(default_factory=list)
     expected: dict = field(default_factory=dict)
     tolerance: dict = field(default_factory=lambda: {"abs": 0.0, "rel": 0.05})
+    lane_probes: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return dict(self.__dict__)
@@ -39,6 +40,26 @@ def _module_list(data, key):
             or not isinstance(m.get("count"), int) or m["count"] < 1 for m in mods):
         raise ValueError(key + ": lista de {name, count>=1}")
     return mods
+
+
+def _number(value):
+    return not isinstance(value, bool) and isinstance(value, (int, float))
+
+
+def _lane_probes(data):
+    """Belt tiles whose per-lane crossings are counted: [{position: {x, y}, expected?: {left?, right?}}]."""
+    probes = data.get("lane_probes", [])
+    if not isinstance(probes, list):
+        raise ValueError("lane_probes deve ser uma lista")
+    for probe in probes:
+        position = probe.get("position") if isinstance(probe, dict) else None
+        if not isinstance(position, dict) or not _number(position.get("x")) or not _number(position.get("y")):
+            raise ValueError("cada lane_probe precisa de position {x, y} numérica")
+        expected = probe.get("expected", {})
+        if not isinstance(expected, dict) or any(k not in ("left", "right") or not _number(v) or v < 0
+                                                 for k, v in expected.items()):
+            raise ValueError("lane_probe.expected: {left?, right?} com taxas >= 0")
+    return probes
 
 
 def validate_case(data: dict) -> Case:
@@ -70,7 +91,8 @@ def validate_case(data: dict) -> Case:
     if not isinstance(expected, dict):
         raise ValueError("expected deve ser um objeto")
     return Case(case_id, blueprint, _positive_int(data, "ticks_warmup", True), _positive_int(data, "ticks_measure"),
-                seed, feed, sinks, mods, beacon_mods, expected, data.get("tolerance") or {"abs": 0.0, "rel": 0.05})
+                seed, feed, sinks, mods, beacon_mods, expected, data.get("tolerance") or {"abs": 0.0, "rel": 0.05},
+                _lane_probes(data))
 
 
 def load_case(path: Path) -> Case:
