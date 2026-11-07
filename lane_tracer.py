@@ -47,11 +47,11 @@ def _tile(point):
     return (math.floor(point[0]), math.floor(point[1]))
 
 
-def trace_output_lanes(entities, start_positions, end_position, prototypes, direction_count=8):
+def trace_output_lanes(entities, start_positions, end_position, prototypes, *, direction_count):
     """Map each drop position to "left"/"right" on the belt at end_position.
 
-    direction_count is 8 for ForgePlan's internal entities (east 2) and 16 for
-    Factorio 2.x blueprint values (east 4).
+    direction_count is required: 8 for ForgePlan's internal entities (east 2) and
+    16 for Factorio 2.x blueprint values (east 4).
     """
     vectors = _vectors(direction_count)
     category = {name: cat for cat in TRANSPORT + ("inserter",) for name in prototypes.get(cat, {})}

@@ -234,7 +234,7 @@ class MirroredBlockGeometryTest(unittest.TestCase):
                     self.assertEqual(len(starts["top"]) > 0 and len(starts["bottom"]) > 0, True)
                     output = next(p for p in layout["ports"] if p["kind"] == "output")
                     end = (output["belt_position"]["x"], output["belt_position"]["y"])
-                    lanes = trace_output_lanes(model["entities"], starts["top"] + starts["bottom"], end, raw)
+                    lanes = trace_output_lanes(model["entities"], starts["top"] + starts["bottom"], end, raw, direction_count=8)
                     top = {lanes[p] for p in starts["top"]}
                     bottom = {lanes[p] for p in starts["bottom"]}
                     self.assertEqual(len(top), 1, lanes)
