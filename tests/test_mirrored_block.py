@@ -1,8 +1,10 @@
 import copy
+import math
 import unittest
 
 from blueprint_quality import require_input_signals
 from factory_layout import options
+from lane_tracer import trace_output_lanes
 import mirrored_block
 
 
@@ -210,6 +212,34 @@ class MirroredBlockGeometryTest(unittest.TestCase):
     def test_output_rows_end_on_different_lanes(self):
         raw, plan, model, layout = self.build()
         self.assertEqual(set(mirrored_block.final_output_lanes(layout).values()), {"left", "right"})
+
+    def test_rows_land_on_different_lanes_traced_independently(self):
+        # Drop tiles come from geometry alone: an output inserter picks from a machine tile
+        # (direction = pickup side, 8 directions internally) and drops on the opposite tile.
+        vectors = {0: (0, -1), 2: (1, 0), 4: (0, 1), 6: (-1, 0)}
+        for ingredients in (1, 2):
+            for size in (2, 3, 4):
+                with self.subTest(ingredients=ingredients, machine=f"{size}x{size}"):
+                    raw, plan, cfg = fixture(machine_size=size, count=6, ingredients=ingredients)
+                    model, layout, _ = mirrored_block.build(raw, plan, cfg)
+                    machine_tiles = {(math.floor(x(m) - size / 2) + i, math.floor(y(m) - size / 2) + j)
+                                     for m in by_name(model, "machine") for i in range(size) for j in range(size)}
+                    starts = {"top": [], "bottom": []}
+                    for arm in by_name(model, "fast"):
+                        dx, dy = vectors[arm["direction"]]
+                        tx, ty = math.floor(x(arm)), math.floor(y(arm))
+                        if (tx + dx, ty + dy) in machine_tiles:
+                            drop = (tx - dx + .5, ty - dy + .5)
+                            starts["top" if drop[1] < layout["central_belt_y"] else "bottom"].append(drop)
+                    self.assertEqual(len(starts["top"]) > 0 and len(starts["bottom"]) > 0, True)
+                    output = next(p for p in layout["ports"] if p["kind"] == "output")
+                    end = (output["belt_position"]["x"], output["belt_position"]["y"])
+                    lanes = trace_output_lanes(model["entities"], starts["top"] + starts["bottom"], end, raw)
+                    top = {lanes[p] for p in starts["top"]}
+                    bottom = {lanes[p] for p in starts["bottom"]}
+                    self.assertEqual(len(top), 1, lanes)
+                    self.assertEqual(len(bottom), 1, lanes)
+                    self.assertNotEqual(top, bottom)
 
 
 class MirroredBlockCapacityTest(unittest.TestCase):
