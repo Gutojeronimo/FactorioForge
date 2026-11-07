@@ -2,6 +2,7 @@
 from collections import Counter, defaultdict, deque
 from copy import deepcopy
 import heapq
+import itertools
 import math
 import time
 
@@ -202,7 +203,14 @@ def simulate_physical(model, config=None, cancel=None):
         harmonic = sum(1 / n for n in range(1, len(burners) + 1))
         cold_start = max(b["buffer_items"] * b["fuel_joules"] / b["usage_watts"] for b in burners) * harmonic
         warmup = max(warmup, cold_start + fast["max_travel_seconds"] + 2 * window)
-    horizon = min(warmup + windows * window, float(cfg.get("max_simulation_seconds", 1800 if burners else 900)))
+    max_seconds = float(cfg.get("max_simulation_seconds", 1800 if burners else 900))
+    horizon = min(warmup + windows * window, max_seconds)
+    # The analytical warm-up ignores the stock piled up while machines start
+    # (e.g. ore queued during a fuel cold start), which drains only at
+    # capacity minus supply. Unless warm-up is explicit, extend it one window
+    # at a time while the factory stock is still draining.
+    settling = "warmup_seconds" not in cfg
+    settle_stock = None
     budget = max(0, float(cfg.get("time_budget_seconds", 20)))
     memory_limit = max(.001, float(cfg.get("memory_limit_mb", 128))) * 1024 * 1024
     queues = {nid: deque() for nid in nodes}
@@ -292,11 +300,24 @@ def simulate_physical(model, config=None, cancel=None):
         return 1.0
     def stock_total():
         return sum(len(q) for q in queues.values()) + sum(sum(s["inputs"].values()) + sum(s["outputs"].values()) + sum(s["wip"].values()) for s in states.values()) + sum(a["hand"][1] if a["hand"] else 0 for a in arms)
-    steps = math.ceil(horizon / dt)
+    drain_tolerance = min(max(2, max_queue_items * .02), max(1, float(plan["actual_per_min"]) * .05) * window / 60)
     elapsed = 0.0
-    for step in range(steps):
+    for step in itertools.count():
+        if step >= math.ceil(horizon / dt):
+            break
         now = step * dt
         delta = min(dt, horizon - now)
+        if settling and settle_stock is None and now + delta > warmup - window:
+            settle_stock = stock_total()
+        if settling and now + delta > warmup:
+            stock = stock_total()
+            if settle_stock - stock > drain_tolerance and warmup + window + windows * window <= max_seconds:
+                warmup += window
+                horizon = min(warmup + windows * window, max_seconds)
+                next_snapshot = warmup + window
+                settle_stock = stock
+            else:
+                settling = False
         phase = "warmup" if now < warmup else "measured"
         if step % max(1, int(1 / dt)) == 0:
             cancelled = _cancelled(cancel)

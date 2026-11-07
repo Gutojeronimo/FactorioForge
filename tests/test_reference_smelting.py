@@ -47,6 +47,23 @@ class ReferenceSmeltingTests(unittest.TestCase):
                 self.assertEqual(sum(layout['reference_module_machine_counts']), count)
                 self.assertEqual(Counter(e['name'] for e in model['entities'])['furnace'], count)
 
+    def test_fuel_cold_start_backlog_drains_before_measurement(self):
+        # Ore arrives at 88% of furnace capacity while coal matches the full-rate
+        # demand: the ore piled up during the fuel cold start drains slowly
+        # (capacity - supply), so measuring right after the analytical warm-up
+        # mistakes the drain for instability.
+        raw, plan, cfg = self.fixture(10)
+        supply = 10 * 18.75 * .88
+        plan.update(actual_per_min=supply, target_per_min=supply / 1.1)
+        plan['ingredients'][0]['per_min'] = plan['products'][0]['per_min'] = supply
+        model, _, _ = build(raw, plan, cfg)
+        result = simulate_physical(model, {'tick_seconds': 1 / 30, 'time_budget_seconds': 120})
+        self.assertEqual(result['status'], 'STABLE', result['window_production_per_min'])
+        self.assertTrue(result['target_met'])
+        self.assertLessEqual(max(result['window_production_per_min']), supply * 1.05)
+        explicit = simulate_physical(model, {'tick_seconds': 1 / 30, 'time_budget_seconds': 120, 'warmup_seconds': 300})
+        self.assertEqual(explicit['warmup_seconds'], 300)
+
     def test_generic_shared_coal_bus_uses_splitters_without_transfer_inserters(self):
         raw, plan, cfg = self.fixture(2)
         base, _, _ = build_candidate(raw, plan, cfg, 'smelting_block')
