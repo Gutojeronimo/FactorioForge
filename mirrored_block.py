@@ -25,13 +25,30 @@ import math
 from bus.signals import signal_combinator
 from factory_layout import footprint
 from production_math import belt_capacity, inserter_budget
-from smelting_layout import belt_components
 
 ROW_LIMIT = 40  # machines per row, the same hard cap as factory_planner.
 
 
 def _items(entries):
     return [e for e in entries if e.get('type', 'item') == 'item']
+
+
+def underground_for(raw, cfg):
+    """The underground related to the chosen belt (same lookup as smelting_layout.belt_components).
+
+    The block crosses the central belt with one underground pair and uses no splitter.
+    """
+    belt = cfg['belt']
+    proto = raw.get('transport-belt', {}).get(belt, {})
+    speed = float(proto.get('speed', 0))
+    candidates = raw.get('underground-belt', {})
+    name = (cfg.get('underground_belt') or proto.get('related_underground_belt')
+            or next((n for n, p in candidates.items() if p.get('related_transport_belt') == belt
+                     and abs(float(p.get('speed', 0)) - speed) < 1e-9), None)
+            or next((n for n, p in candidates.items() if abs(float(p.get('speed', 0)) - speed) < 1e-9), None))
+    if name not in candidates or float(candidates[name].get('speed', 0)) + 1e-9 < speed:
+        return None
+    return name
 
 
 def rejection_reason(raw, plan, cfg):
@@ -60,15 +77,16 @@ def rejection_reason(raw, plan, cfg):
             return f'Equipamento indisponível no perfil: {cfg.get(key) or key}.'
     pole = raw['electric-pole'][cfg['pole']]
     if footprint(pole) != (1, 1):
-        return 'O bloco espelhado põe os postes nas faixas de inserters e exige poste 1x1.'
+        width_p, height_p = footprint(pole)
+        return (f'Bloco espelhado indisponível: o poste {cfg["pole"]} ocupa {width_p}x{height_p} tiles e o bloco '
+                'só aceita postes 1x1 nas faixas de inserters (por exemplo, a subestação do perfil "throughput" não serve).')
     for key in ('input_inserter', 'output_inserter'):
         proto = raw['inserter'][cfg[key]]
         if any(round(math.hypot(*proto.get(p, d))) != 1 for p, d in (('pickup_position', [0, -1]), ('insert_position', [0, 1.2]))):
-            return f'O bloco espelhado exige inserter de alcance 1 ({cfg[key]}).'
-    try:
-        belt_components(raw, cfg, True)
-    except ValueError as exc:
-        return f'Esteira sem splitter/underground relacionado: {exc}'
+            return (f'Bloco espelhado indisponível: o inserter {cfg[key]} não tem alcance de 1 tile '
+                    '(braço longo não é suportado); escolha um inserter comum, rápido ou bulk.')
+    if not underground_for(raw, cfg):
+        return f'Bloco espelhado indisponível: não há underground compatível com a esteira {cfg["belt"]} no catálogo.'
     if float(pole.get('maximum_wire_distance', 0)) < width + 1:
         return f'O fio do poste {cfg["pole"]} não alcança entre as faixas de uma máquina {width}x{width}.'
     return ''
@@ -151,7 +169,7 @@ def build(raw, plan, requested):
     reason = rejection_reason(raw, plan, cfg)
     if reason:
         raise ValueError(reason)
-    cfg.update(belt_components(raw, cfg, True))
+    cfg['underground_belt'] = underground_for(raw, cfg)
     count = int(plan['machine_count'])
     limit = limits(raw, plan, cfg)
     if limit['inserters'] == 0:

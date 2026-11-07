@@ -12,6 +12,8 @@ Já corrigido antes deste spec (commits em `main`): meta aceita com 1% de toler�
 
 **Dentro:** receitas com 1 ou 2 insumos sólidos (o combustível conta como insumo), exatamente 1 produto sólido, sem fluidos; máquina com pegada quadrada de qualquer tamanho (2×2, 3×3, 4×4…), energia elétrica ou a combustível sólido; esteiras e inserters escolhidos no perfil.
 
+**Limitações atuais (recusadas com motivo em `mirrored_block.rejection_reason`):** postes 2×2 ou maiores (por exemplo, a subestação do preset `throughput`), porque os postes ficam nas faixas de inserters de 1 tile; inserters com alcance diferente de 1 tile (braço longo); poste cujo fio não alcança entre faixas (alcance menor que lado da máquina + 1); esteira sem underground compatível. Pendência: suportar postes 2×2.
+
 **Fora:** 3+ insumos, fluidos, mais de um produto (seguem o layout atual); trens e city blocks (sub-projeto posterior, com *Brian's city* e *Rail Blocks* como referência); mudanças no barramento.
 
 ## 3. Critérios de sucesso

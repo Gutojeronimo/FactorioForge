@@ -27,6 +27,7 @@
 - **K09:** resolvido. `build.ps1`, `start.ps1` e `ForgePlan.cmd` usam `app-next/` (com `app/` como reserva).
 - O modo automático de módulos escolhia módulos ocultos de mods (+12500% de velocidade); agora os ignora.
 - O ciclo do inserter (`inserter_budget`) foi calibrado no jogo: usa o maior entre rotação e extensão, sem o acréscimo de 4 ticks.
+- **Bloco espelhado (`mirrored_block.py`):** fica indisponível com postes 2×2 ou maiores (por exemplo, a subestação do preset `throughput`) e com braço longo como inserter de entrada ou de saída. Os postes ocupam a faixa de inserters de 1 tile, e os braços precisam de alcance 1. `rejection_reason` explica a recusa, e essas receitas seguem no layout atual. Pendência: suportar postes 2×2.
 
 ## Não é defeito confirmado
 

@@ -85,11 +85,24 @@ class MirroredBlockScopeTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, word):
                 mirrored_block.build(raw, plan, cfg)
 
-    def test_missing_related_splitter_is_rejected(self):
+    def test_missing_related_underground_is_rejected_but_splitter_is_not_needed(self):
         raw, plan, cfg = fixture()
         del raw["splitter"]
-        self.assertIn("splitter", mirrored_block.rejection_reason(raw, plan, cfg))
+        self.assertTrue(mirrored_block.matches(raw, plan, cfg))
+        model, _, _ = mirrored_block.build(raw, plan, cfg)
+        self.assertEqual(model["errors"], [])
+        raw, plan, cfg = fixture()
+        del raw["underground-belt"]
+        self.assertIn("underground", mirrored_block.rejection_reason(raw, plan, cfg))
         self.assertFalse(mirrored_block.matches(raw, plan, cfg))
+
+    def test_unsupported_pole_and_inserter_have_clear_reasons(self):
+        raw, plan, cfg = fixture()
+        raw["electric-pole"]["pole"].update(collision_box=[[-.9, -.9], [.9, .9]], tile_width=2, tile_height=2)
+        self.assertIn("só aceita postes 1x1", mirrored_block.rejection_reason(raw, plan, cfg))
+        raw, plan, cfg = fixture()
+        raw["inserter"]["fast"].update(pickup_position=[0, -2], insert_position=[0, 2.2])
+        self.assertIn("braço longo não é suportado", mirrored_block.rejection_reason(raw, plan, cfg))
 
 
 class MirroredBlockGeometryTest(unittest.TestCase):
@@ -212,6 +225,23 @@ class MirroredBlockCapacityTest(unittest.TestCase):
         plan["ingredients"][0]["per_min"] = 1 * 10
         plan["products"][0]["per_min"] = 20 * 10
         self.assertEqual(mirrored_block.max_machines(raw, plan, cfg), 44)
+
+    def test_top_row_ceil_half_decides_the_output_limit(self):
+        # 20 packs/machine, 450 per lane: 45 machines total 900/min (fits two lanes),
+        # but the top row gets ceil(45/2) = 23 machines = 460/min > one lane. 44 fits.
+        raw, plan, cfg = fixture(count=45, ingredients=1)
+        plan["ingredients"][0]["per_min"] = 45
+        plan["products"][0]["per_min"] = 20 * 45
+        self.assertLessEqual(plan["products"][0]["per_min"], 900)
+        self.assertEqual(mirrored_block.max_machines(raw, plan, cfg), 44)
+        with self.assertRaisesRegex(ValueError, "no máximo 44"):
+            mirrored_block.build(raw, plan, cfg)
+        raw, plan, cfg = fixture(count=44, ingredients=1)
+        plan["ingredients"][0]["per_min"] = 44
+        plan["products"][0]["per_min"] = 20 * 44
+        model, layout, _ = mirrored_block.build(raw, plan, cfg)
+        self.assertEqual(model["errors"], [])
+        self.assertEqual([sum(p["row"] == r for p in layout["positions"]) for r in (0, 1)], [22, 22])
 
     def test_inserter_budget_limits_machines(self):
         raw, plan, cfg = fixture()
