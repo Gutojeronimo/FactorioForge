@@ -9,7 +9,7 @@ são registro, não critério.
 
 - Receita `iron-plate` em `steel-furnace` (2x2, combustível), 48 máquinas, 30 itens/s (1800/min).
 - Esteira `fast-transport-belt`, inserters `fast-inserter`, postes `small-electric-pole` (o que o handbook usa).
-- `belt_safety_margin = 0`: o handbook enche a esteira rápida inteira (30/s). Com a margem padrão (0,08) o bloco comporta 44 máquinas.
+- `belt_safety_margin = 0`: o handbook enche a esteira rápida inteira (30/s). O plano desta comparação omite o carvão: com só minério, o bloco comporta 48 máquinas (44 com a margem padrão de 0,08). Com o combustível na outra lane da esteira central, como no plano real do gerador, o minério fica com uma lane só e o limite cai para 24 máquinas com margem 0, ou 22 com a margem padrão.
 - `mirrored_block.build` é chamado direto: a fornalha 2x2 a combustível casa com `reference_smelting`, então o otimizador não escolheria o bloco espelhado para esta receita.
 
 ## Estrutura (detectada nos dois)
