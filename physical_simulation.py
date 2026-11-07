@@ -308,6 +308,7 @@ def simulate_physical(model, config=None, cancel=None):
         now = step * dt
         delta = min(dt, horizon - now)
         if settling and settle_stock is None and now + delta > warmup - window:
+            # Baseline stock one window before the warm-up ends; the drop since then shows a draining backlog.
             settle_stock = stock_total()
         if settling and now + delta > warmup:
             stock = stock_total()

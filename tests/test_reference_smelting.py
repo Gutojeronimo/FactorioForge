@@ -64,6 +64,29 @@ class ReferenceSmeltingTests(unittest.TestCase):
         explicit = simulate_physical(model, {'tick_seconds': 1 / 30, 'time_budget_seconds': 120, 'warmup_seconds': 300})
         self.assertEqual(explicit['warmup_seconds'], 300)
 
+    def backlog_model(self, target):
+        raw, plan, cfg = self.fixture(10)
+        supply = 10 * 18.75 * .88
+        plan.update(actual_per_min=supply, target_per_min=target)
+        plan['ingredients'][0]['per_min'] = plan['products'][0]['per_min'] = supply
+        return build(raw, plan, cfg)[0]
+
+    def test_adaptive_warmup_does_not_hide_supply_below_target(self):
+        model = self.backlog_model(10 * 18.75)
+        result = simulate_physical(model, {'tick_seconds': 1 / 30, 'time_budget_seconds': 120})
+        capped = simulate_physical(model, {'tick_seconds': 1 / 30, 'time_budget_seconds': 120, 'max_simulation_seconds': 900})
+        self.assertGreater(result['warmup_seconds'], capped['warmup_seconds'])  # adaptive extension was active
+        self.assertFalse(result['target_met'])
+        self.assertNotEqual(result['status'], 'STABLE')
+
+    def test_adaptive_warmup_respects_max_simulation_seconds(self):
+        model = self.backlog_model(10 * 18.75 * .8)
+        for limit in (900, 1100):  # 1100 lets the warm-up grow two windows, then caps it
+            with self.subTest(limit=limit):
+                result = simulate_physical(model, {'tick_seconds': 1 / 30, 'time_budget_seconds': 120, 'max_simulation_seconds': limit})
+                self.assertLessEqual(result['simulated_seconds'], limit + 1e-6)
+                self.assertLessEqual(result['warmup_seconds'] + result['measurement_seconds'], limit + 1e-6)
+
     def test_generic_shared_coal_bus_uses_splitters_without_transfer_inserters(self):
         raw, plan, cfg = self.fixture(2)
         base, _, _ = build_candidate(raw, plan, cfg, 'smelting_block')
